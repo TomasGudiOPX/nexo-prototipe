@@ -1,0 +1,30 @@
+services:
+  nexo:
+    build:
+      context: .
+      target: web
+    image: nexo-prototipe:web
+    restart: unless-stopped
+    ports:
+      - "${NEXO_PORT:-3000}:80"
+    depends_on:
+      nexo-api:
+        condition: service_healthy
+
+  nexo-api:
+    build:
+      context: .
+      target: runtime
+    image: nexo-prototipe:api
+    restart: unless-stopped
+    expose:
+      - "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      RAGFLOW_BASE_URL: ${RAGFLOW_BASE_URL_DOCKER:-http://host.docker.internal:9380}
+      RAGFLOW_API_KEY: ${RAGFLOW_API_KEY:-}
+      RAGFLOW_DATASET_CHAT_IDS: ${RAGFLOW_DATASET_CHAT_IDS:-{}}
+      RAGFLOW_ADMIN_URL: ${RAGFLOW_ADMIN_URL:-http://localhost:80}

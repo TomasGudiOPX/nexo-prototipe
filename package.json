@@ -1,0 +1,28 @@
+{
+  "name": "nexo-prototipe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev --port 3000",
+    "configure": "node tools/configure.mjs",
+    "build": "react-router build",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-router/node": "8.4.0",
+    "@react-router/serve": "8.4.0",
+    "isbot": "5.1.31",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router": "8.4.0"
+  },
+  "devDependencies": {
+    "@react-router/dev": "8.4.0",
+    "@types/node": "24.3.0",
+    "@types/react": "19.1.10",
+    "@types/react-dom": "19.1.7",
+    "typescript": "5.9.2",
+    "vite": "7.1.3"
+  }
+}

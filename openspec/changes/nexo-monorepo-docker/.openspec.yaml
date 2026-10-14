@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-10-13
+goal: Build NEXO frontend and its lightweight API backend from one repository,
+  selectively integrating RAGFlow through its HTTP API while excluding the
+  resource-heavy RAGFlow engine and supporting stack.
