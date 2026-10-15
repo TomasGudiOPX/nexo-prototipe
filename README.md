@@ -1,43 +1,59 @@
 # NEXO · Inteligencia constructiva
 
-Frontend standalone para el prototipo NEXO. Las vistas de proyectos, documentos, alertas, informes y configuración usan contenido de demostración. El Centro de Inteligencia y el Asistente consultan datasets de RAGFlow.
+Prototipo NEXO con frontend, API propia y una selección del backend Go de RAGFlow en el mismo repositorio. El panel de operaciones de NEXO administra las funciones disponibles; el frontend de administración de RAGFlow no se incluye.
 
 ## Requisitos
 
-- Node.js 20.19+ o 22.12+
-- Un servidor `ragflow-be` disponible y un dataset accesible
-- Un chat de RAGFlow asociado al dataset para usar el Asistente
+- Docker Desktop/Engine con Docker Compose v2.
+- Node.js 24.4+ para desarrollo local.
 
-## Configuración local
+## Iniciar el monorepo con Docker
 
-1. Instalá dependencias con `npm ci`.
-2. Ejecutá `npm run configure` desde una terminal interactiva. El prompt oculta la API key mientras la escribís y guarda la configuración solo en `.env`, que está excluido de Git. Podés dejar el mapeo de chats como `{}` para explorar grafos; agregá `{"dataset-id":"chat-id"}` para habilitar respuestas del Asistente.
-3. Iniciá el frontend con `npm run dev` y abrí `http://localhost:3000`.
-4. Si el frontend ya estaba abierto al configurar la conexión, pulsá **Reintentar conexión** en Centro de Inteligencia.
-5. Ejecutá `npm run typecheck` y `npm run build` para validar el proyecto.
+1. Copiá `.env.example` como `.env`.
+2. Cambiá `NEXO_BOOTSTRAP_ADMIN_PASSWORD` por una contraseña única y reemplazá `NEXO_SESSION_SECRET`, `NEXO_ENCRYPTION_KEY` y `RAGFLOW_API_KEY` con secretos aleatorios. No reutilices los valores de ejemplo.
+3. Generá credenciales locales para los servicios de almacenamiento:
 
-Las credenciales se leen exclusivamente en los handlers del servidor. El navegador solo llama a rutas del mismo origen y nunca recibe la API key. Si el backend usa otro puerto o esquema, indicá la URL completa durante la configuración.
+   ```sh
+   npm run configure:compose
+   ```
 
-## Docker
+   Esto crea `.env.compose.local`, que está excluido de Git. Conservá el archivo: las credenciales deben seguir coincidiendo con los datos persistidos en los volúmenes.
+4. Iniciá el proyecto desde la raíz:
 
-Docker Compose ejecuta dos servicios de NEXO desde este repositorio: `nexo` sirve el frontend y `nexo-api` ejecuta las rutas API de React Router. NEXO se conecta a una instancia RAGFlow existente. Copiá `.env.example` a `.env`, completá `RAGFLOW_API_KEY` y el mapeo de chats, y ejecutá:
+   ```sh
+   docker compose up --build -d
+   ```
 
-```sh
-docker compose up --build -d
-```
+Compose construye NEXO web/API y el backend Go seleccionado desde archivos de este repo, e inicia MySQL, Elasticsearch, MinIO, Kvrocks y NATS. No requiere `..\\ragflow-be`, otra instalación RAGFlow ni otro comando Compose. La API de RAGFlow solo está publicada en `127.0.0.1:9380` para desarrollo local; NEXO dentro de Docker la consume por la red privada. El puerto 9381 y los puertos de almacenamiento no se publican.
 
-Abrí NEXO en `http://localhost:3000`. El proxy Nginx del servicio `nexo` envía `/api/*` al servicio `nexo-api`; la API key solo se configura en `nexo-api` y no se envía al navegador. `RAGFLOW_BASE_URL_DOCKER` es la dirección que resuelve desde ese contenedor; para RAGFlow en el host, `http://host.docker.internal:9380` funciona con Docker Desktop. La URL local para `npm run dev` sigue siendo `RAGFLOW_BASE_URL=http://localhost:9380`. `RAGFLOW_ADMIN_URL` es independiente y se abre desde el navegador, por ejemplo `http://localhost:80` para la UI del contenedor RAGFlow.
+Abrí `http://localhost:3000` y el panel en `http://localhost:3000/admin/`. El usuario administrador inicial usa el email, nombre y contraseña configurados en `.env`. Con una base nueva, el arranque crea el administrador NEXO/RAGFlow y una cuenta técnica regular de RAGFlow para el API key; RAGFlow bloquea las llamadas de dataset hechas por superusuarios. No hay credenciales predeterminadas. Cambiar las variables de bootstrap no modifica cuentas ya existentes.
 
-La selección de `ragflow-be` es deliberadamente acotada: NEXO usa por HTTP las operaciones de datasets, documentos/chunks y metadatos de grafo, y chat. El backend distribuible es la API liviana de NEXO en este monorepo. No copiamos los handlers Go porque dependen de paquetes internos de almacenamiento/indexación; tampoco el SDK Python, que duplicaría el cliente TypeScript existente, ni la UI admin completa. Elasticsearch, MySQL, MinIO, ClickHouse, Kvrocks, NATS y el motor RAGFlow quedan en la instalación RAGFlow existente. En el perfil CPU revisado, el stack consumía alrededor de 6.5 GiB de RAM (Elasticsearch cerca de 4.6 GiB). Abrí **RAGFlow Admin** desde la navegación lateral; el enlace usa `RAGFLOW_ADMIN_URL` y debe ser accesible desde el navegador.
+Para detener los contenedores y conservar los datos, ejecutá `docker compose down`. No uses `docker compose down -v` salvo que quieras borrar las bases, archivos e índices. Las credenciales generadas deben conservarse junto con los volúmenes para que los servicios puedan abrir sus datos después de reiniciar.
 
-## Preparación inicial de RAGFlow
+## Configuración de la aplicación
 
-NEXO aún no crea datasets, carga documentos ni configura asistentes. Para la primera puesta en marcha, usa RAGFlow Admin para configurar un proveedor/modelo, crear un dataset, cargar y procesar documentos, y crear un chat asociado a ese dataset. Después selecciona el dataset en NEXO; si el chat no se detecta automáticamente, configúralo en `RAGFLOW_DATASET_CHAT_IDS`. Los hallazgos, la selección de componentes y una propuesta de panel inicial están en [docs/ragflow-discoveries.md](docs/ragflow-discoveries.md).
+`RAGFLOW_BASE_URL` y `RAGFLOW_API_KEY` son la configuración de deployment de respaldo. Mientras no exista una configuración guardada, NEXO usa esos valores y la conexión se identifica como `deployment-managed`. Un site admin puede abrir `http://localhost:3000/admin/` para guardar una URL y reemplazar la API key en ejecución, validar la conexión o volver explícitamente a los valores de deployment. La API key no se muestra, exporta ni se devuelve al navegador; el override se cifra con `NEXO_ENCRYPTION_KEY` mediante AES-256-GCM. Conservá esa clave al restaurar un respaldo: cambiarla impide descifrar overrides existentes, que deben limpiarse desde el panel para volver al fallback.
 
-Para detener NEXO sin borrar configuración ni datos:
+La aplicación principal separa Home, Workspaces, Knowledge, Assistants, Activity, Reports y Configuration. Los workspaces agrupan usuarios autorizados con datasets y asistentes de RAGFlow; RAGFlow sigue siendo la fuente de verdad para documentos, procesamiento y configuración de asistentes. `RAGFLOW_DATASET_CHAT_IDS` conserva compatibilidad con la vista de chat anterior. Las Data Sources externas de RAGFlow se muestran como no disponibles si el backend conectado no expone ese contrato.
 
-```sh
-docker compose down
-```
+Para ejecutar NEXO fuera de Docker con `npm run dev`, iniciá primero los servicios con Compose y configurá `RAGFLOW_BASE_URL=http://localhost:9380` en `.env`. Como el contenedor web ocupa por defecto el puerto 3000, detenelo (`docker compose stop nexo`) o elegí otro `NEXO_PORT` antes de iniciar Vite. La API Node dentro de Compose ya usa `http://ragflow-backend:9380`; no cambies esa dirección por una URL del host.
 
-Esto detiene y elimina los contenedores/red de NEXO, pero conserva sus imágenes y no opera sobre los volúmenes del proyecto RAGFlow. No uses `docker compose down -v` para detener NEXO. Para volver al modo desarrollo, detené NEXO con el comando anterior e iniciá `npm run dev`; el `.env` local conserva su `RAGFLOW_BASE_URL` de host.
+## Arquitectura y selección de RAGFlow
+
+El código upstream seleccionado es RAGFlow `v1.0.0-rc1` (`14bb02ee4584c1ab18f0c722c48beecd6bbf9860`), con licencia Apache-2.0 y atribución en `vendor/ragflow/UPSTREAM.md`. Se conserva la clausura de fuente Go necesaria para API, ingesta, sincronización y funciones de dataset/documentos/chunks/grafo/chat. Se excluyen la API/servicios Python, interfaz web de RAGFlow, SDKs, ejemplos y perfiles opcionales. Las dependencias de datos necesarias se declaran como servicios del Compose raíz.
+
+Las imágenes backend se construyen desde el contexto de este repositorio. Los Dockerfiles pueden descargar imágenes base, toolchains y recursos upstream declarados; no leen otra carpeta de checkout. El stack limita memoria por contenedor, pero el total real depende de los datos, la carga de ingesta y Docker. La medición comparativa de memoria del cambio OpenSpec se documentará cuando se verifique en ejecución.
+
+## Configuración segura para VPS
+
+En el servidor, proporciona `.env` y `.env.compose.local` como secretos fuera de las imágenes y del control de versiones. Configurá `NEXO_PORT` según el proxy frontal. Terminá TLS en ese proxy y reenviá `X-Forwarded-Proto: https` para habilitar cookies seguras. Publicá imágenes construidas desde esta revisión del monorepo; no es necesario clonar otro backend. Respaldá los volúmenes y conservá `NEXO_ENCRYPTION_KEY`, `.env.compose.local` y las credenciales de bootstrap necesarias para restaurar.
+
+La guía de copia/restauración del estado NEXO está en [docs/nexo-data-backup.md](docs/nexo-data-backup.md).
+
+Antes de actualizar una instalación, respaldá los volúmenes y los dos archivos de entorno. Revisá el cambio de versión de `vendor/ragflow/UPSTREAM.md`, reconstruí las imágenes con `docker compose up --build -d` y conservá los archivos/secretos existentes. Las actualizaciones de esquema del backend pueden impedir volver a una imagen anterior con datos ya migrados; restaurá también el respaldo si necesitás volver atrás.
+ 
+## Operación del sitio NEXO
+
+La navegación de producción, workspaces, proveedores, fuentes de datos,
+actividad y límites de reportes se describen en
+[docs/nexo-production-operations.md](docs/nexo-production-operations.md).

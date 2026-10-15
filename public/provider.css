@@ -1,0 +1,150 @@
+/* Model providers UI. Self-contained so it renders identically in the live shell
+   (/nexo-prototipo.html) and the standalone workspace page (/workspace.html). */
+
+.provider-search{flex:0 1 280px;min-width:220px}
+
+.provider-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:12px;margin-top:18px}
+.provider-card{display:flex;flex-direction:column;gap:12px;border:1px solid #2b3832;border-radius:11px;background:#111815;padding:14px}
+.provider-card[hidden]{display:none}
+.provider-card-head{display:flex;align-items:center;gap:11px;min-width:0}
+.provider-card-logo,.provider-modal-logo{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.provider-card-logo{width:40px;height:40px}
+.provider-modal-logo{width:48px;height:48px}
+.provider-card-id{min-width:0;display:grid;gap:3px}
+.provider-card-id h3{margin:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.provider-card-types{display:flex;flex-wrap:wrap;gap:5px;min-height:22px;align-content:flex-start}
+.provider-card-open{margin-top:auto;justify-content:center}
+.provider-state{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#cde5aa;font-weight:700}
+.provider-state-off{color:#8b9791;font-weight:500}
+
+.provider-logo{display:block;object-fit:contain}
+/* Several brand marks are black or near-black on transparent, and sprite symbols
+   without an explicit fill inherit `fill`. Both vanish against the dark page, so
+   file logos get a light plate and symbols are forced to a light currentColor. */
+.provider-logo-file{background:#eef1ec;border-radius:7px;padding:3px;box-sizing:content-box}
+.provider-logo-symbol{color:#e9eeeb}
+.provider-logo-initials{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#243123;color:#cde5aa;font:700 11px Manrope,'DM Sans',sans-serif;text-transform:uppercase}
+
+.chip{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid #334833;border-radius:999px;background:#1a2318;color:#b9c9a1;font-size:11px}
+.provider-empty{color:#9aa79e;padding:18px 0;margin:0}
+.provider-empty.error{color:#f09185}
+
+/* --- Modal ------------------------------------------------------------- */
+
+.nexo-provider{width:min(880px,calc(100vw - 32px));max-height:88vh;box-sizing:border-box;overflow:auto;padding:22px;border:1px solid #344039;border-radius:14px;background:#151c19;color:#e4e9df;font:14px 'DM Sans',system-ui,sans-serif}
+.nexo-provider::backdrop{background:#000b}
+.nexo-provider h2{margin:0;font-size:19px;font-weight:600}
+.nexo-provider h3{margin:18px 0 8px;font-size:15px;font-weight:600}
+.nexo-provider p{margin:0}
+
+.provider-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #2b3832;padding-bottom:14px}
+.provider-modal-id{display:flex;align-items:center;gap:12px;min-width:0}
+.provider-modal-id>div{min-width:0}
+.provider-modal-id p{margin:4px 0 0;font-size:12px}
+.provider-modal-body{margin-top:16px}
+.provider-modal-status{min-height:20px;margin:14px 0 0;color:#cde5aa}
+.provider-modal-status.error{color:#f09185}
+
+.provider-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.provider-toolbar>.muted{margin-right:auto}
+.provider-balance{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.provider-balance>div{display:grid;gap:4px;border:1px solid #2b3832;border-radius:9px;padding:10px 12px;background:#0f1513}
+.provider-balance b{font:700 18px Manrope,'DM Sans',sans-serif}
+.provider-form{margin-top:18px;border-top:1px solid #2b3832;padding-top:16px}
+.provider-form[hidden]{display:none}
+
+.nexo-provider button{border:1px solid #b5d07a;background:#b6d584;color:#152016;border-radius:8px;padding:9px 13px;font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.nexo-provider button.secondary{background:#17211d;border-color:#3b4b41;color:#d6e1d1}
+.nexo-provider button.danger{background:#3b211f;border-color:#79413b;color:#ffd8d2}
+.nexo-provider button:focus-visible{outline:2px solid #b6d584;outline-offset:2px}
+.nexo-provider input,.nexo-provider select{box-sizing:border-box;width:100%;max-width:100%;padding:10px 12px;border:1px solid #2b3832;border-radius:7px;background:#0c1210;color:#e4e9df;font:inherit}
+.nexo-provider label{display:grid;gap:7px;color:#c2cbc1;font-size:12px}
+.nexo-provider .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.nexo-provider .muted{color:#9aa79e;line-height:1.5}
+.nexo-provider .table-wrap{overflow-x:auto}
+.nexo-provider table{width:100%;border-collapse:collapse;text-align:left}
+.nexo-provider th,.nexo-provider td{padding:11px 12px;border-bottom:1px solid #2b3832;white-space:nowrap}
+.nexo-provider .badge{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid #334833;background:#243324;color:#cce09c;font-size:11px;font-weight:600;white-space:nowrap}
+.nexo-provider .badge.gray{background:#18201e;color:#95a5a0;border-color:#2a3834}
+.nexo-provider .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Host pages add their own button classes; keep the panel consistent too. */
+.provider-panel button{border:1px solid #b5d07a;background:#b6d584;color:#152016;border-radius:8px;padding:9px 13px;font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.provider-panel button.secondary{background:#17211d;border-color:#3b4b41;color:#d6e1d1}
+.provider-panel button.danger{background:#3b211f;border-color:#79413b;color:#ffd8d2}
+.provider-panel .badge{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid #334833;background:#243324;color:#cce09c;font-size:11px;font-weight:600;white-space:nowrap}
+.provider-panel .table-wrap{overflow-x:auto}
+
+@media(max-width:640px){
+  .nexo-provider{padding:16px}
+  .nexo-provider .form-grid{grid-template-columns:1fr}
+  .provider-grid{grid-template-columns:1fr}
+}
+
+/* --- Data sources (shares the provider card/modal language) --------------- */
+
+.ds-heading{margin:22px 0 10px;font-size:15px;font-weight:600}
+.ds-heading:first-of-type{margin-top:18px}
+.ds-source-card .ds-description{margin:0;color:#9aa79e;font-size:12px;line-height:1.5}
+.ds-groups{display:grid;gap:12px}
+.ds-group{border:1px solid #2b3832;border-radius:11px;background:#111815;padding:14px}
+.ds-group[hidden]{display:none}
+.ds-group-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ds-group-head h4{margin:0;font-size:14px;font-weight:600}
+.ds-group-head .muted{margin-left:auto;font-size:11px}
+.ds-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid #22302b}
+.ds-row:first-of-type{border-top:0}
+.ds-row-id{display:grid;gap:3px;min-width:0}
+.ds-row-id b{overflow-wrap:anywhere}
+.ds-row-id .muted{font-size:11px}
+
+.ds-form .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.ds-form .wide{grid-column:1/-1}
+.ds-check{display:flex;align-items:center;gap:9px;color:#c2cbc1;font-size:12px}
+.ds-check input{width:auto}
+.ds-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:0 0 16px}
+.ds-facts>div{border:1px solid #2b3832;border-radius:9px;padding:10px 12px;background:#0f1513}
+.ds-facts dt{color:#9aa79e;font-size:11px;margin-bottom:5px}
+.ds-facts dd{margin:0;font-weight:600}
+.ds-associate{display:grid;gap:7px;color:#c2cbc1;font-size:12px;margin-bottom:16px}
+.nexo-provider textarea{box-sizing:border-box;width:100%;max-width:100%;padding:10px 12px;border:1px solid #2b3832;border-radius:7px;background:#0c1210;color:#e4e9df;font:inherit;resize:vertical}
+
+@media(max-width:640px){
+  .ds-form .form-grid{grid-template-columns:1fr}
+}
+/* --- Configuración chrome (tabs + section heads, shared by all four sections) --
+   Selectors are written to win over both hosts: the shell's `.btn` injection is
+   skipped for tabs, and `.panel .config-*` matches the specificity of the
+   `.nexo-live .panel *` rules while provider.css loads last. */
+.config-tabs{display:flex;gap:22px;margin:20px 0 18px;border-bottom:1px solid #26312f;overflow-x:auto}
+.config-tabs button[role=tab]{flex:0 0 auto;width:auto;padding:0 2px 12px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:#8b9b90;font:500 13px 'DM Sans',system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.config-tabs button[role=tab]:hover{color:#cfdac9}
+.config-tabs button[role=tab].active{color:#c4d88c;border-bottom-color:#b8cc79;font-weight:600}
+.config-tabs button[role=tab]:focus-visible{outline:2px solid #a7c56e;outline-offset:2px;border-radius:4px}
+.panel .config-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.panel .config-head h2{margin:0;font-size:17px;font-weight:600}
+.panel .config-head .eyebrow{margin:0 0 5px}
+.panel .config-head p.muted{margin:7px 0 0;max-width:660px}
+.config-head-side{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.config-tags{display:flex;gap:8px;flex-wrap:wrap}
+.config-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.config-form .wide{grid-column:1/-1}
+.config-actions{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.config-actions .notice{margin:0}
+.config-status{color:#9aa79e}
+.config-status:empty{display:none}
+.config-list{display:grid;gap:10px;margin-top:14px}
+.config-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #22302b}
+.config-row:first-child{border-top:0;padding-top:0}
+.config-row-id{display:flex;align-items:center;gap:10px;min-width:220px;flex:1 1 260px}
+.config-row-id .muted{font-size:11px;overflow-wrap:anywhere}
+.config-row-tags{display:flex;gap:8px;flex-wrap:wrap}
+.config-row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.config-inline-select{display:flex;align-items:center;gap:6px;font-size:11px;color:#9aa79e}
+.config-inline-select select{width:auto;padding:7px 9px;font-size:12px}
+.config-row-spaces{flex-basis:100%;display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:11px}
+.config-row-spaces > .muted{margin-right:2px}
+@media(max-width:640px){
+  .config-form{grid-template-columns:1fr}
+  .config-tabs{gap:16px}
+}

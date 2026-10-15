@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "react-router dev --port 3000",
     "configure": "node tools/configure.mjs",
+    "configure:compose": "node tools/configure-compose.mjs",
     "build": "react-router build",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc --noEmit"
+    "typecheck": "react-router typegen && tsc --noEmit",
+    "test": "node --loader ./tools/ts-extension-loader.mjs --test app/server/*.test.ts test/*.test.mjs"
   },
   "dependencies": {
     "@react-router/node": "8.4.0",

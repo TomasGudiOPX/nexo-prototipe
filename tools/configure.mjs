@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const input = process.stdin;
@@ -42,14 +42,26 @@ try {
   if (!mapping || typeof mapping !== "object" || Array.isArray(mapping) || Object.values(mapping).some(value => typeof value !== "string")) {
     throw new Error("The chat mapping must be a JSON object with string chat IDs.");
   }
+  const configPath = fileURLToPath(new URL("../.env", import.meta.url));
+  let existing = "";
+  try { existing = await readFile(configPath, "utf8"); } catch {}
+  const managedKeys = new Set([
+    "RAGFLOW_BASE_URL", "RAGFLOW_API_KEY", "RAGFLOW_DATASET_CHAT_IDS",
+    "RAGFLOW_BASE_URL_DOCKER", "RAGFLOW_ADMIN_URL",
+  ]);
+  const preserved = existing.split(/\r?\n/).filter(line => {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=/);
+    return !match || !managedKeys.has(match[1]);
+  });
   const contents = [
     "# Server-only RAGFlow configuration. This file is gitignored.",
     `RAGFLOW_BASE_URL=${envValue(baseUrl)}`,
     `RAGFLOW_API_KEY=${envValue(apiKey)}`,
     `RAGFLOW_DATASET_CHAT_IDS=${envValue(JSON.stringify(mapping))}`,
+    ...preserved,
     "",
   ].join("\n");
-  await writeFile(fileURLToPath(new URL("../.env", import.meta.url)), contents, { encoding: "utf8", mode: 0o600 });
+  await writeFile(configPath, contents, { encoding: "utf8", mode: 0o600 });
   output.write("Saved server-only configuration to .env. Restart the frontend to load datasets.\n");
 } catch (error) {
   output.write(`${error instanceof Error ? error.message : "Configuration failed."}\n`);

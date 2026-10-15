@@ -2,38 +2,62 @@
 
 ## Purpose
 
-Defines the selected integration boundary between NEXO's backend and the RAGFlow HTTP API. NEXO implements its own lightweight API adapter and does not package RAGFlow's engine.
+Defines the in-repository RAGFlow backend boundary used by the NEXO server API. NEXO and the selected RAGFlow backend are deployed together; the default application must not depend on an independently running RAGFlow stack.
 
 ## ADDED Requirements
 
-### Requirement: Integrate through the selected RAGFlow API surface
+### Requirement: Provide the selected RAGFlow operations in-repository
 
-The system SHALL use server-side HTTP requests for the RAGFlow dataset, document/chunk metadata, graph context, and assistant chat operations required by NEXO.
+The system SHALL include and build the selected RAGFlow backend source and its required runtime dependency closure from this repository for dataset, document/chunk, graph metadata, and assistant chat operations used by NEXO.
 
-#### Scenario: Use an existing RAGFlow engine
+#### Scenario: Run required operations without an external RAGFlow deployment
 
-- **WHEN** the operator configures a reachable RAGFlow base URL and API key
-- **THEN** NEXO's API container sends the required requests to that instance and keeps the key out of browser responses
+- **WHEN** an operator starts the documented default Compose project
+- **THEN** NEXO's dataset, document/chunk, graph, and chat API requests are served by the RAGFlow backend in the same project
 
-#### Scenario: RAGFlow is unavailable
+#### Scenario: An optional RAGFlow operation is not included
 
-- **WHEN** the configured engine cannot be reached or is not configured
-- **THEN** NEXO returns a clear service/configuration error and does not expose credentials
+- **WHEN** an operation is outside the selected backend surface
+- **THEN** NEXO reports that operation as unsupported and does not require a second RAGFlow deployment
 
-### Requirement: Exclude coupled RAGFlow internals
+#### Scenario: External Data Sources API is outside the selected backend
 
-The system SHALL NOT copy or start RAGFlow's coupled Go handlers, engine internals, indexing/storage dependencies, Python SDK, or persistent volumes as part of the default NEXO deployment.
+- **WHEN** a site administrator opens Data Sources in NEXO
+- **THEN** NEXO reports external connector management as unsupported in this backend profile and does not link to a separate RAGFlow admin panel
 
-#### Scenario: Start NEXO without duplicating the engine
+### Requirement: Use the private internal service address
 
-- **WHEN** the operator starts the default NEXO Compose configuration
-- **THEN** only NEXO frontend and API containers start and no RAGFlow engine services or volumes are created
+The system SHALL route NEXO server-to-server calls to the RAGFlow service through the private Compose network and SHALL keep the RAGFlow API key on the server.
 
-### Requirement: Link to the RAGFlow admin UI
+#### Scenario: Configure the integrated service
 
-The system SHALL allow a browser-facing RAGFlow admin URL to be configured independently of the server-side API URL.
+- **WHEN** Compose starts the NEXO API and RAGFlow backend
+- **THEN** the NEXO API reaches the backend at its internal service endpoint without an operator-provided external URL
 
-#### Scenario: Open the admin UI
+#### Scenario: RAGFlow is not ready
 
-- **WHEN** an admin URL is configured
-- **THEN** NEXO provides a link to that URL without proxying or bundling the RAGFlow admin frontend
+- **WHEN** the RAGFlow backend or one of its required dependencies is unhealthy
+- **THEN** NEXO API remains unready and reports a safe dependency-health error without exposing credentials
+
+### Requirement: Exclude unrelated RAGFlow components
+
+The system SHALL NOT bundle the RAGFlow admin web frontend, Python client SDK, sample applications, optional channels, unused backend modules, or runtime services outside the documented dependency closure.
+
+#### Scenario: Inspect default Compose services
+
+- **WHEN** an operator inspects the default Compose deployment
+- **THEN** it contains only NEXO services and the explicitly documented RAGFlow runtime/dependency services
+
+### Requirement: Keep operator workflows in NEXO
+
+The system SHALL provide the supported initial and ongoing RAGFlow operations through NEXO's operations panel rather than requiring a separate RAGFlow admin frontend.
+
+#### Scenario: Prepare a dataset for NEXO
+
+- **WHEN** a site administrator uses the NEXO operations panel
+- **THEN** the administrator can complete the supported dataset, document, and assistant setup against the in-repository backend
+
+#### Scenario: No separate RAGFlow admin frontend is deployed
+
+- **WHEN** an operator uses NEXO's operations panel
+- **THEN** supported operations are managed there and no browser-facing link depends on an external RAGFlow frontend

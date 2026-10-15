@@ -1,0 +1,23 @@
+.nexo-modal{width:min(520px,calc(100vw - 32px));max-height:85vh;box-sizing:border-box;overflow:auto;padding:24px;border:1px solid #344039;border-radius:12px;background:#151c19;color:#e4e9df;font:14px 'DM Sans',sans-serif}
+.nexo-modal::backdrop{background:#000a}
+.nexo-modal .modal-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nexo-modal h2{margin:0;font-size:21px;font-weight:500}
+.nexo-modal .modal-description{margin:8px 0 4px;line-height:1.5;color:#aab7ab}
+.nexo-modal label{display:grid;gap:6px;margin:12px 0;font-size:12px}
+.nexo-modal label span{color:#c4d0c7}
+.nexo-modal input,.nexo-modal textarea,.nexo-modal select{box-sizing:border-box;width:100%;padding:10px;border:1px solid #34443b;border-radius:6px;background:#0d1315;color:#e9eeeb;font:inherit}
+.nexo-modal .modal-fieldset{margin:12px 0;padding:12px;border:1px solid #34443b;border-radius:8px}
+.nexo-modal .modal-fieldset legend{padding:0 6px;font-size:12px;color:#c4d0c7}
+.nexo-modal .modal-check{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 9px;margin:0;padding:8px 4px;border-bottom:1px solid #1f2a27}
+.nexo-modal .modal-check:last-of-type{border-bottom:0}
+.nexo-modal .modal-check input{width:auto;accent-color:#b6d584}
+.nexo-modal .modal-check small{grid-column:2;color:#8f9d92;font-size:11px}
+.nexo-modal .modal-fieldset .modal-status{margin:4px 0 0}
+.nexo-modal .modal-status{min-height:18px;margin:6px 0 0;font-size:12px;line-height:1.4;color:#aab7ab}
+.nexo-modal .modal-status.error{color:#ffc0b9}
+.nexo-modal .modal-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:14px}
+.nexo-modal button{padding:10px 15px;border:1px solid #495c3b;border-radius:6px;background:#243123;color:#d5e7bc;font:inherit;cursor:pointer}
+.nexo-modal button[type=submit]{background:#b6d584;color:#152016;font-weight:700}
+.nexo-modal button.secondary{background:transparent;color:#c8d7c6;border-color:#405144}
+.nexo-modal button:disabled{opacity:.5;cursor:default}
+.nexo-modal button:focus-visible{outline:2px solid #b6d584;outline-offset:3px}

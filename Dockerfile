@@ -16,9 +16,12 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
+RUN mkdir -p /data && chown node:node /data
+
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/build ./build
+VOLUME ["/data"]
 
 USER node
 

@@ -1,6 +1,9 @@
 node_modules/
+data/
 build/
 .react-router/
 .env
+.env.local
 .env.*.local
 !.env.example
+.gstack/

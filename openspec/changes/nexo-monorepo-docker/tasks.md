@@ -1,18 +1,25 @@
 # Tasks
 
-## 1. Containerize the NEXO application
+## 1. Re-select the RAGFlow backend boundary
 
-- [x] 1.1 Add production Docker targets for the NEXO web and API services and verify both build from the NEXO repository root without sibling source directories.
-- [x] 1.2 Add a Docker ignore policy and safe environment example; verify local secrets, dependency directories, and generated data are excluded from the build context.
-- [x] 1.3 Verify the container serves the browser UI and server API with runtime RAGFlow settings, and confirm missing settings return a safe configuration error.
+- [x] 1.1 Trace the RAGFlow backend startup and transitive dependencies for datasets, document processing/chunks, graph metadata, and chat; record the selected modules/services, upstream version, license, and omitted components in `design.md`.
+- [ ] 1.2 Confirm a buildable RAGFlow backend can be reduced to the selected source closure without requiring `..\\ragflow-be` at build or runtime; define the resource measurement method and compare with the recorded ~6.5 GiB baseline.
 
-## 2. Add default Compose deployment and admin access
+## 2. Build the selected backend from this repository
 
-- [x] 2.1 Add default Compose services for NEXO web and API, wire browser API requests through the web proxy, and accept external RAGFlow API/key/admin settings; verify both services start and no RAGFlow engine services start.
-- [x] 2.2 Add a NEXO entry point for the configured RAGFlow admin URL and document local versus Compose-network API URLs; verify both URLs can be configured independently.
+- [x] 2.1 Add the selected RAGFlow backend source/build inputs under this repository with upstream license and attribution; do not copy the RAGFlow admin frontend, SDKs, samples, or unused modules.
+- [x] 2.2 Add a backend Docker target that builds from the in-repository selected source and verify it builds without sibling directories.
+- [ ] 2.3 Keep generated binaries, caches, local configuration, credentials, and runtime data outside tracked source and image layers.
 
-## 3. Select the RAGFlow integration boundary
+## 3. Integrate the runtime into NEXO Compose
 
-- [x] 3.1 Inspect the sibling RAGFlow backend and select the HTTP API operations NEXO needs for datasets, chunks/metadata, graph context, and chat.
-- [x] 3.2 Exclude Go handlers and internal engine/storage packages because they are coupled; exclude the Python SDK because the existing Node API adapter already performs those HTTP calls.
-- [x] 3.3 Keep RAGFlow engine services and persistent volumes outside this repository; document NEXO-only start/stop and rollback procedures without affecting RAGFlow data.
+- [x] 3.1 Add only the dependency services proven necessary by the selected backend and NEXO's required flows; apply safe resource limits/defaults and persistent named volumes.
+- [ ] 3.2 Configure the NEXO API to use the private Compose service endpoint and server-only credential; remove the external RAGFlow deployment requirement and browser-facing separate admin link.
+- [x] 3.3 Add readiness/health checks and dependency ordering so NEXO does not report healthy before RAGFlow and its required stores are ready.
+- [ ] 3.4 Make the single documented `docker compose up --build -d` command build and start all NEXO and selected RAGFlow services.
+
+## 4. Restore required operator flows and document deployment
+
+- [ ] 4.1 Verify dataset discovery/management, document processing, chunk/graph context, and assistant chat against the in-repository backend.
+- [ ] 4.2 Update README setup, secrets, ports, storage backup/restore, clean stop, and upgrade instructions for the one-project deployment.
+- [ ] 4.3 Measure idle and active memory for the selected stack and document the result; do not declare completion unless it is below the recorded full-stack baseline.

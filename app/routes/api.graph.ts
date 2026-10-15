@@ -1,4 +1,6 @@
-import { asList, asRecord, RagflowError, ragflow, validateDataset } from "../server/ragflow";
+import { asList, asRecord, RagflowError, ragflow, validateDataset } from "../server/ragflow.server";
+import { requireUser } from "../server/auth.server";
+import { workspaceHasResource } from "../server/workspaces.server";
 import type { Route } from "./+types/api.graph";
 
 type GraphDoc = Record<string, unknown>;
@@ -111,6 +113,7 @@ async function buildDocumentConnections(datasetId: string, datasetName: string, 
     name: term.label,
     description: `${term.kind === "metadata" ? "Metadato" : term.kind === "keyword" ? "Palabra clave de RAGFlow" : "Término compartido en fragmentos o nombres"} · presente en ${term.documentIds.size} documentos`,
     kind: term.kind,
+    documentCount: term.documentIds.size,
   }));
   const hubId = `dataset:${datasetId}`;
   const hub = { id: hubId, name: datasetName || "Dataset", description: `Dataset con ${sourceDocs.length} documentos. Los enlaces a conceptos se basan en datos compartidos.`, kind: "dataset", x: 0, y: 0, z: 0 };
@@ -139,10 +142,13 @@ async function buildDocumentConnections(datasetId: string, datasetName: string, 
   };
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
+  const auth = requireUser(request); if (!auth.user) return auth.response;
+  const id = params.datasetId;
+  const workspaceId = new URL(request.url).searchParams.get("workspaceId");
+  if (!id) return Response.json({ error: "Dataset is invalid." }, { status: 400 });
+  if (auth.user.role !== "site-admin" && (!workspaceId || !workspaceHasResource(auth.user, workspaceId, "datasets", id))) return Response.json({ error: "Dataset is not linked to an authorized workspace." }, { status: 404 });
   try {
-    const id = params.datasetId;
-    if (!id) throw new RagflowError("Dataset inválido.", 400);
     const dataset = await validateDataset(id);
     const raw = asRecord(await ragflow(`/api/v1/datasets/${encodeURIComponent(id)}/graph`));
     const data = asRecord(raw.data ?? raw);

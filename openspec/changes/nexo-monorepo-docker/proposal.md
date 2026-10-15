@@ -2,28 +2,26 @@
 
 ## Why
 
-NEXO needs a single repository that builds and runs both its browser frontend and its lightweight backend API. The prior proposal incorrectly treated a pinned RAGFlow image as the backend to include. RAGFlow's Go handlers are coupled to its storage, indexing, and internal engine packages, and its supported runtime starts several memory-heavy services. Copying those handlers alone would not produce a working backend; bringing the complete runtime would violate the resource constraint.
+The current deployment contains NEXO's web app and adapter API but not the RAGFlow backend that serves datasets, document processing, retrieval, and chat. The adapter therefore depends on a second, separately checked out and deployed RAGFlow stack. That violates the monorepo deployment requirement and is the direct cause of `No se pudo conectar con RAGFlow.` when that stack is absent or stopped.
+
+NEXO needs one repository and one Compose project that builds and starts the browser app, NEXO API, and a deliberately selected RAGFlow backend runtime. The selection must omit RAGFlow's unrelated admin web app, client SDKs, optional services, and unused backend modules, while retaining every component required by NEXO's dataset, document, graph, and assistant flows. It must also reduce the current measured runtime footprint rather than reproducing the complete RAGFlow stack unchanged.
 
 ## What Changes
 
-- Keep NEXO's frontend, server API, and deployment configuration in this repository and build the frontend and API as separate containers.
-- Selectively use the RAGFlow backend's HTTP API surface for datasets, document chunks/metadata, graph context, and assistant chat through NEXO's server-side adapter.
-- Keep the adapter and NEXO-specific routes as the deployable backend; pass RAGFlow credentials only to that API container.
-- Exclude RAGFlow's Go handlers and engine internals, Python SDK, admin frontend, indexing/storage services, and persistent volumes. The handlers are not separable from their internal dependencies, and the Python SDK duplicates the existing TypeScript HTTP adapter.
-- Connect to an already-running RAGFlow instance through configurable API/admin URLs. Do not start a RAGFlow image or supporting services from default Compose.
-- Keep the RAGFlow admin UI as an independently configured browser link.
+- Keep NEXO frontend, NEXO API, and selected RAGFlow backend source/build files in this repository; no build or runtime step may read `..\\ragflow-be` or require a second checkout.
+- Replace the external-only RAGFlow URL dependency with an internal Compose service built from the selected in-repository RAGFlow backend source.
+- Include only the RAGFlow runtime dependencies proven necessary by the selected backend paths; tune resource use and document the measured total.
+- Keep RAGFlow credentials and service-to-service URLs server-side. NEXO API uses the internal Compose network and exposes neither credentials nor internal service URLs to browsers.
+- Keep NEXO's operations panel as the operator interface. Do not bundle RAGFlow's separate admin frontend.
+- Keep service state in named volumes owned by this Compose project, with documented backup and upgrade behavior.
 
 ## Capabilities
 
-### New Capabilities
-
-- `nexo-containerized-runtime`: Build and run NEXO's frontend and server API as separate containers from this repository.
-- `ragflow-api-integration`: Use the selected RAGFlow HTTP API surface from the NEXO backend without bundling the RAGFlow engine or its full stack.
-
 ### Modified Capabilities
 
-None.
+- `nexo-containerized-runtime`: the default Compose deployment includes the selected RAGFlow runtime required by NEXO, all built/deployed from this repository.
+- `ragflow-api-integration`: NEXO's server adapter talks to the in-repository RAGFlow service over the private Compose network; a separately running RAGFlow installation is not required.
 
 ## Impact
 
-Affected areas include the NEXO server API adapter and routes, Docker build targets, root Compose configuration, safe environment examples, and documentation of the selected/excluded RAGFlow components. RAGFlow remains an external engine dependency; NEXO's frontend and integration backend are built from this single repository.
+Affected areas include selected vendored/upstream backend source and attribution, Docker build targets, root Compose services and health dependencies, server-only configuration, operations bootstrap, persistent volumes, and deployment documentation. The completed change must build from an isolated clone of this repository and must not depend on sibling source directories or an independently started RAGFlow stack.

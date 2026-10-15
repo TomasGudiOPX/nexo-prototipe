@@ -1,9 +1,6 @@
-import type { Route } from "./+types/home";
+import { redirect } from "react-router";
 
-export function loader({ request }: Route.LoaderArgs) {
-  const target = new URL(request.url);
-  target.pathname = "/nexo-prototipo.html";
-  return Response.redirect(target, 302);
+export function loader({ request }: { request: Request }) {
+  // One canonical URL keeps refresh/back and shared links in the original shell.
+  return redirect(`/nexo-prototipo.html${new URL(request.url).search}`);
 }
-
-export default function Home() { return null; }
