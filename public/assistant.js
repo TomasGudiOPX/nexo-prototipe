@@ -38,10 +38,10 @@
     #assistantSourceStatus{grid-column:1/-1;margin:0;color:#d58d7c;font-size:11px;line-height:1.35}
     #assistantSourceStatus:empty{display:none}
     .chat-input #chatInput{grid-column:1;min-width:0;min-height:40px;padding:0 4px!important;background:transparent!important}
-    .voice-control{grid-column:2;position:relative;width:40px;height:40px;align-self:center;border:1px solid rgba(165,190,165,.18);border-radius:7px;background:#182221;cursor:not-allowed;opacity:.62}
+    .voice-control{grid-column:2;position:relative;width:40px;height:40px;align-self:stretch;justify-self:stretch;border:1px solid rgba(165,190,165,.18);border-radius:7px;background:#182221;cursor:not-allowed;opacity:.62}
     .voice-control::before{content:'';position:absolute;top:10px;left:16px;width:7px;height:13px;border:1.5px solid #c2d0af;border-radius:6px}
     .voice-control::after{content:'';position:absolute;top:16px;left:12px;width:15px;height:10px;border:1.5px solid #c2d0af;border-top:0;border-radius:0 0 10px 10px;box-shadow:7px 10px 0 -6px #c2d0af}
-    .chat-input .round{grid-column:3;width:40px;height:40px;align-self:center;border-radius:7px!important;background:#b8ce7d!important;color:#162019!important;box-shadow:none!important;transition:transform 160ms ease,background-color 160ms ease}
+    .chat-input .round{grid-column:3;width:40px;height:40px;align-self:stretch;justify-self:stretch;border-radius:7px!important;background:#b8ce7d!important;color:#162019!important;box-shadow:none!important;transition:transform 160ms ease,background-color 160ms ease}
     .chat-input .round:hover{background:#c8dc91!important;transform:translateY(-1px)}
     .chat-input .round:focus-visible{outline:2px solid #e8eee9;outline-offset:2px}
     @media(max-width:760px){.chat-input{grid-template-columns:minmax(0,1fr) 44px 44px!important;padding:10px!important}#assistantSourceBar{grid-template-columns:1fr;gap:6px;padding-bottom:10px}#assistantSourceBar label{min-height:44px;padding:8px 31px 8px 11px}#assistantSourceBar label::after{bottom:13px}.voice-control,.chat-input .round{width:44px;height:44px}}
@@ -55,9 +55,11 @@
     .chat-note.error{color:#e38575}
     .assistant-ready{display:grid;gap:10px;margin-top:18px;color:#9fb0a4;font-size:11px;line-height:1.6}
     .assistant-ready b{color:#e9eeeb}
-    .assistant-side .notice{display:grid;gap:5px;margin-top:22px;padding-top:14px;border-top:1px solid rgba(165,190,165,.14);color:#93a098!important}
+    .assistant-side .notice{display:grid;gap:7px;margin-top:22px;padding-top:14px;border-top:1px solid rgba(165,190,165,.14);color:#93a098!important}
     .assistant-side .notice b{color:#c8d9a8;font-size:9px;letter-spacing:1px;text-transform:uppercase}
     .assistant-side .notice span{font-size:11px;line-height:1.55}
+    .assistant-side .notice .notice-summary{color:#d8e1d8;font-weight:600}
+    .assistant-side .notice .notice-detail{padding-left:9px;border-left:1px solid rgba(184,206,125,.42);color:#9eaaa1}
   `;
   document.head.appendChild(style);
 
@@ -81,6 +83,7 @@
 
   function currentWorkspace() { return state.workspaces.find(row => row.id === state.workspaceId) || null; }
   function currentDataset() { return state.datasets.find(row => row.id === state.datasetId) || null; }
+  function currentAssistant() { return state.assistants.find(row => row.id === state.assistantId) || null; }
   const isAdmin = () => state.user?.role === "site-admin";
 
   // The chat route needs a dataset, and an assistant whenever a workspace is set.
@@ -235,7 +238,9 @@
     const notice = side.querySelector(".notice");
     if (notice) notice.replaceChildren(
       el("b", null, "Fuentes y contexto"),
-      el("span", null, "Abrí los documentos relacionados directamente desde cada respuesta."),
+      el("span", "notice-summary", currentDataset() ? `Consultando ${currentDataset().name} con ${currentAssistant()?.name || "el asistente seleccionado"}.` : "Elegí un dataset y un asistente para comenzar."),
+      el("span", "notice-detail", "Los documentos relacionados aparecen junto a cada respuesta."),
+      el("span", "notice-detail", state.conversationId ? "Esta sesión conserva el contexto de la conversación." : "Una nueva consulta iniciará una sesión de conversación."),
     );
     document.getElementById("assistantSource")?.remove();
   }
