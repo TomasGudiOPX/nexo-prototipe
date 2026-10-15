@@ -28,15 +28,23 @@
   // ---------------------------------------------------------------- styles
   const style = document.createElement("style");
   style.textContent = `
-    .chat-input{flex-wrap:wrap;padding:10px!important;gap:8px!important}
-    #assistantSourceBar{display:flex;flex:1 0 100%;flex-wrap:wrap;gap:7px;align-items:center;padding:0 0 9px;border-bottom:1px solid #26332d}
-    #assistantSourceBar label{display:flex;align-items:center;gap:6px;min-width:0;color:#8d9a89;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
-    #assistantSourceBar select{height:28px;max-width:154px;padding:0 25px 0 8px;border:1px solid #34403b;border-radius:5px;background:#101719;color:#e9eeeb;font:500 10px 'DM Sans',sans-serif;outline:none}
-    #assistantSourceBar select:focus{border-color:#a7c56e}
-    #assistantSourceBar select:disabled{opacity:.55}
-    #assistantSourceStatus{margin-left:auto;color:#82928f;font-size:10px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
-    .chat-input #chatInput{min-width:0;flex:1}
-    @media(max-width:760px){#assistantSourceBar{gap:6px}#assistantSourceBar label{width:100%;justify-content:space-between}#assistantSourceBar select{max-width:74%;flex:1}#assistantSourceStatus{margin-left:0;max-width:100%;width:100%}}
+    .chat-input{display:grid!important;grid-template-columns:minmax(0,1fr) 40px 40px;gap:10px!important;padding:12px!important;border-color:#354139!important;background:#121a1a!important;box-shadow:0 12px 34px rgba(0,0,0,.18)}
+    #assistantSourceBar{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 0 12px;border-bottom:1px solid rgba(165,190,165,.14)}
+    #assistantSourceBar label{position:relative;display:grid;gap:3px;min-width:0;padding:7px 28px 7px 10px;border:1px solid rgba(165,190,165,.13);border-radius:7px;background:rgba(6,11,14,.34);color:#89968d;font-size:8px;font-weight:700;letter-spacing:.85px;line-height:1;text-transform:uppercase;transition:border-color 160ms ease,background-color 160ms ease}
+    #assistantSourceBar label::after{content:'⌄';position:absolute;right:10px;bottom:8px;color:#9caf7d;font-size:13px;font-weight:400;pointer-events:none}
+    #assistantSourceBar label:focus-within{border-color:rgba(181,207,126,.68);background:rgba(181,207,126,.055)}
+    #assistantSourceBar select{width:100%;min-width:0;padding:0;border:0;appearance:none;background:transparent;color:#e8eee9;font:600 12px/1.25 'DM Sans',sans-serif;outline:none;cursor:pointer;text-overflow:ellipsis}
+    #assistantSourceBar select:disabled{opacity:.48;cursor:not-allowed}
+    #assistantSourceStatus{grid-column:1/-1;margin:0;color:#d58d7c;font-size:11px;line-height:1.35}
+    #assistantSourceStatus:empty{display:none}
+    .chat-input #chatInput{grid-column:1;min-width:0;min-height:40px;padding:0 4px!important;background:transparent!important}
+    .voice-control{grid-column:2;position:relative;width:40px;height:40px;align-self:center;border:1px solid rgba(165,190,165,.18);border-radius:7px;background:#182221;cursor:not-allowed;opacity:.62}
+    .voice-control::before{content:'';position:absolute;top:10px;left:16px;width:7px;height:13px;border:1.5px solid #c2d0af;border-radius:6px}
+    .voice-control::after{content:'';position:absolute;top:16px;left:12px;width:15px;height:10px;border:1.5px solid #c2d0af;border-top:0;border-radius:0 0 10px 10px;box-shadow:7px 10px 0 -6px #c2d0af}
+    .chat-input .round{grid-column:3;width:40px;height:40px;align-self:center;border-radius:7px!important;background:#b8ce7d!important;color:#162019!important;box-shadow:none!important;transition:transform 160ms ease,background-color 160ms ease}
+    .chat-input .round:hover{background:#c8dc91!important;transform:translateY(-1px)}
+    .chat-input .round:focus-visible{outline:2px solid #e8eee9;outline-offset:2px}
+    @media(max-width:760px){.chat-input{grid-template-columns:minmax(0,1fr) 44px 44px!important;padding:10px!important}#assistantSourceBar{grid-template-columns:1fr;gap:6px;padding-bottom:10px}#assistantSourceBar label{min-height:44px;padding:8px 31px 8px 11px}#assistantSourceBar label::after{bottom:13px}.voice-control,.chat-input .round{width:44px;height:44px}}
     .chat-evidence{display:grid;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #2b3a33}
     .chat-evidence>b{color:#a9bd86;font-size:10px;letter-spacing:1px;text-transform:uppercase}
     .chat-doc-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -196,7 +204,7 @@
     status.setAttribute("role", "status");
     // The blocking reason is explained next to the input; here we only report
     // load failures and the active source.
-    status.textContent = state.note || (notReadyReason() ? "" : `Consultando sobre ${currentDataset()?.name || "el dataset"}`);
+    status.textContent = state.note;
     bar.append(status);
   }
 
@@ -239,6 +247,17 @@
   // The side panel keeps the design's brain, its status and the notice.
   function renderSidePanel() {
     tidySidePanel();
+  }
+
+  function addVoiceControl() {
+    const composer = screen.querySelector(".chat-input");
+    if (!composer || composer.querySelector(".voice-control")) return;
+    const voice = el("button", "voice-control");
+    voice.type = "button";
+    voice.disabled = true;
+    voice.title = "Voz a texto · Próximamente";
+    voice.setAttribute("aria-label", "Voz a texto, próximamente");
+    composer.append(voice);
   }
 
   function evidenceBlock(references) {
@@ -321,7 +340,7 @@
 
   function renderAll() {
     dropMcpPlaceholder();
-    sourceBar(); renderSuggestions(); renderSidePanel(); renderChat(); renderReadyState(); renderStatus();
+    sourceBar(); addVoiceControl(); renderSuggestions(); renderSidePanel(); renderChat(); renderReadyState(); renderStatus();
   }
 
   // ---------------------------------------------------------------- actions

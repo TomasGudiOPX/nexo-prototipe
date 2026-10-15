@@ -203,6 +203,7 @@ test("assistant keeps context controls inside the query composer and omits the M
   assert.equal(bar.children[1].children[0].textContent, "Asistente");
   assert.equal(bar.children[2].children[0].textContent, "Sesión");
   assert.equal(bar.children[3].id, "assistantSourceStatus");
+  assert.equal(composer.querySelector(".voice-control")?.disabled, true, "voice input is visibly unavailable until implemented");
   assert.equal(h.nodes.has("assistantContext"), false, "no duplicated space selector");
 
   // The shell may inject the MCP placeholder again; the module removes it.
