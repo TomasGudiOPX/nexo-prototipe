@@ -79,7 +79,8 @@ function harness({ search = "", session = { user: null }, workspaces = { workspa
   const side = new El("div"); side.className = "panel panel-pad assistant-side";
   const title = new El("div"); title.className = "panel-title"; title.append(new El("h2"));
   const stale = new El("div"); stale.className = "recent-query";
-  side.append(title, stale);
+  const notice = new El("div"); notice.className = "notice";
+  side.append(title, stale, notice);
   layout.append(chatbox, side);
   const head = new El("div"); head.className = "screen-head";
   screen.append(head, layout);
@@ -188,6 +189,7 @@ test("assistant replaces the placeholder suggestions and drops the duplicated li
   assert.equal(h.stale.parentElement, null);
   assert.equal(h.side.querySelector(".eyebrow"), null);
   assert.equal(h.side.querySelector(".panel-title"), null);
+  assert.equal(h.side.querySelector(".notice"), null);
 });
 
 test("assistant keeps context controls inside the query composer and omits the MCP placeholder", async () => {

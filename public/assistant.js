@@ -229,6 +229,7 @@
     side.querySelector(".eyebrow")?.remove();
     side.querySelector(".panel-title")?.remove();
     side.querySelectorAll(".recent-query").forEach(node => node.remove());
+    side.querySelector(".notice")?.remove();
     document.getElementById("assistantSource")?.remove();
   }
 
