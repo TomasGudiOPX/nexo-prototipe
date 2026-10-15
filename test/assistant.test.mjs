@@ -189,7 +189,7 @@ test("assistant replaces the placeholder suggestions and drops the duplicated li
   assert.equal(h.stale.parentElement, null);
   assert.equal(h.side.querySelector(".eyebrow"), null);
   assert.equal(h.side.querySelector(".panel-title"), null);
-  assert.equal(h.side.querySelector(".notice"), null);
+  assert.equal(h.side.querySelector(".notice")?.children[0].textContent, "Fuentes y contexto");
 });
 
 test("assistant keeps context controls inside the query composer and omits the MCP placeholder", async () => {

@@ -55,6 +55,9 @@
     .chat-note.error{color:#e38575}
     .assistant-ready{display:grid;gap:10px;margin-top:18px;color:#9fb0a4;font-size:11px;line-height:1.6}
     .assistant-ready b{color:#e9eeeb}
+    .assistant-side .notice{display:grid;gap:5px;margin-top:22px;padding-top:14px;border-top:1px solid rgba(165,190,165,.14);color:#93a098!important}
+    .assistant-side .notice b{color:#c8d9a8;font-size:9px;letter-spacing:1px;text-transform:uppercase}
+    .assistant-side .notice span{font-size:11px;line-height:1.55}
   `;
   document.head.appendChild(style);
 
@@ -229,7 +232,11 @@
     side.querySelector(".eyebrow")?.remove();
     side.querySelector(".panel-title")?.remove();
     side.querySelectorAll(".recent-query").forEach(node => node.remove());
-    side.querySelector(".notice")?.remove();
+    const notice = side.querySelector(".notice");
+    if (notice) notice.replaceChildren(
+      el("b", null, "Fuentes y contexto"),
+      el("span", null, "Abrí los documentos relacionados directamente desde cada respuesta."),
+    );
     document.getElementById("assistantSource")?.remove();
   }
 
