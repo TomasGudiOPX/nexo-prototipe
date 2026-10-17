@@ -2,7 +2,7 @@
 
 ## Alcance y fuente inspeccionada
 
-Estos hallazgos se basan en el checkout hermano `../ragflow-be`, revisión `14bb02e`, y en la integración NEXO presente en este repositorio. Las referencias a `ragflow-be/...` apuntan a ese checkout inspeccionado; no forman parte de este monorepo ni son rutas disponibles en un clon limpio.
+Estos hallazgos comparan el checkout hermano `../ragflow-be` con la integración NEXO actual. El backend incluido en `vendor/ragflow/` es una exportación seleccionada del mismo upstream (`v1.0.0-rc1`, commit `14bb02ee4584c1ab18f0c722c48beecd6bbf9860`), con los parches de perfil descritos en [`../vendor/ragflow/UPSTREAM.md`](../vendor/ragflow/UPSTREAM.md). El checkout hermano sirve como referencia para estudiar el repositorio completo; no es una dependencia de build o ejecución del monorepo NEXO.
 
 ## Qué es el backend de RAGFlow
 
@@ -13,9 +13,9 @@ Estos hallazgos se basan en el checkout hermano `../ragflow-be`, revisión `14bb
 
 ## Límites y dependencias operativas
 
-El despliegue CPU de RAGFlow inspeccionado contiene el servicio RAGFlow y servicios de estado/infraestructura como Elasticsearch, MySQL, MinIO, ClickHouse, Kvrocks y NATS. El perfil Go seleccionado no inicializa su controlador ClickHouse, que es un stub sin conexión; por eso el Compose de NEXO solo incluye Elasticsearch, MySQL, MinIO, Kvrocks y NATS. En el entorno analizado, el stack ocupaba aproximadamente 6.5 GiB de RAM, con cerca de 4.6 GiB atribuidos a Elasticsearch. Es una medición de ese despliegue, no un requisito universal.
+El Compose integrado actual inicia `ragflow-backend` junto con MySQL, Elasticsearch, MinIO, Kvrocks y NATS. El perfil Go seleccionado no inicializa el controlador ClickHouse, por eso ClickHouse no forma parte de ese Compose. En una medición anterior del despliegue CPU, el stack ocupaba aproximadamente 6.5 GiB de RAM, con cerca de 4.6 GiB atribuidos a Elasticsearch. Esa medición corresponde a aquel entorno y no predice el consumo de la configuración actual ni es un requisito universal; el uso real depende de datos, concurrencia, parsing, Docker y ajustes de servicios.
 
-La instancia RAGFlow existente sigue siendo responsable de almacenar datasets, procesar/indexar documentos, generar chunks, mantener modelos/configuración y responder consultas. El contenedor `nexo-api` no reemplaza ese motor.
+El servicio `ragflow-backend` integrado sigue siendo responsable de almacenar datasets, procesar/indexar documentos, generar chunks, mantener modelos/configuración y responder consultas. El contenedor `nexo-api` no reemplaza ese motor; lo consume mediante HTTP.
 
 ## Superficie HTTP que NEXO necesita
 
@@ -34,7 +34,7 @@ Las llamadas se originan en el servidor NEXO y usan la API key como credencial B
 
 Cuando RAGFlow no ofrece un grafo de conocimiento para un dataset, NEXO puede construir un grafo de documentos y términos compartidos a partir de chunks/metadata. Ese grafo alternativo es una visualización derivada por NEXO, no un grafo persistido por RAGFlow.
 
-## Estado de NEXO antes del panel de operaciones
+## Estado histórico de NEXO antes del panel de operaciones
 
 En la inspección original NEXO listaba datasets, visualizaba sus documentos/conexiones, consultaba chats asociados y respondía preguntas con el chat vinculado. La asociación podía resolverse desde los chats visibles o configurarse con `RAGFLOW_DATASET_CHAT_IDS`. NEXO también ofrecía un enlace a la UI admin configurada mediante `RAGFLOW_ADMIN_URL`.
 
@@ -47,24 +47,26 @@ En aquel punto de partida faltaban las operaciones de preparación de datos y as
 5. Crear o editar un chat/asistente, asociar el dataset y guardar esa asociación sin editar variables de entorno.
 6. Verificar desde NEXO que el dataset tenga documentos procesados y un asistente consultable.
 
-Por eso, para las primeras operaciones se necesita conservar acceso a la UI admin de RAGFlow o implementar en NEXO un panel guiado y limitado a esos flujos. No conviene copiar toda la UI admin: incluye muchas funciones que este prototipo no necesita y está acoplada a su propio backend. La opción más pequeña es un asistente de configuración NEXO para conexión, dataset/documentos, estado de indexación y asociación de chat; las opciones avanzadas de modelos, proveedores e integraciones pueden seguir en la UI admin.
+Ese diagnóstico describe el punto de partida histórico. La decisión posterior fue implementar en NEXO un panel de operaciones limitado a sus flujos, en lugar de incluir la UI admin completa de RAGFlow. Las capacidades disponibles hoy se detallan en «Estado actual» más abajo; las opciones avanzadas del motor siguen dependiendo de RAGFlow.
 
-## Decisión recomendada para el monorepo
+## Decisión de arquitectura: propuesta inicial y evolución
 
-**Incluir en NEXO:** frontend NEXO, su API liviana Node, el adaptador HTTP del lado servidor, las transformaciones de grafo necesarias y Docker/Compose para ambos servicios.
+La propuesta inicial era mantener RAGFlow como instalación separada y consumirlo por HTTP. Esa separación de responsabilidades sigue vigente, pero la decisión de empaquetado cambió: NEXO ahora incluye una exportación seleccionada del backend Go y la construye como servicio propio del Compose.
 
-**Usar sin copiar:** la superficie HTTP RAGFlow necesaria para dataset, documentos/chunks/metadatos, grafo y chat.
+**Incluir en NEXO:** frontend NEXO, API Node, adaptador HTTP, transformaciones de grafo, exportación Go seleccionada de RAGFlow y Docker/Compose para la aplicación y el backend.
 
-**Dejar en la instalación RAGFlow:** handlers Go y paquetes internos, motor de indexación/recuperación, servicios de almacenamiento/estado, volúmenes persistentes y UI admin completa.
+**Mantener como servicio RAGFlow:** API/ingesta/recuperación Go, estado e índices propios de RAGFlow. NEXO no copia handlers aislados ni accede directamente a sus bases; conserva la UI propia y omite la consola web admin de RAGFlow.
 
-Así, FE y API de NEXO se construyen desde un solo repositorio, mientras RAGFlow mantiene su responsabilidad de motor de conocimiento sin iniciar un segundo stack de alto consumo.
+La exportación hace que el build integrado no dependa de un checkout hermano. El acoplamiento de NEXO sigue siendo al contrato HTTP del servicio, mientras la selección vendorizada y sus parches requieren mantenimiento explícito al actualizar upstream.
 
-## Actualización del panel NEXO
+## Estado actual de NEXO
 
-El panel `/admin/` y sus APIs viven ahora en este repositorio. NEXO administra sus propias cuentas, sesiones y aprobaciones MCP en SQLite; el volumen persistente es `nexo-data`. No se incorpora el checkout `../ragflow-be` ni se crea un contenedor RAGFlow en Compose.
+El panel `/admin/` y sus APIs viven en este repositorio. NEXO administra sus propias cuentas, sesiones y aprobaciones MCP en SQLite; el volumen persistente es `nexo-data`. El Compose sí construye y levanta `ragflow-backend` desde `vendor/ragflow/`, además de MySQL, Elasticsearch, MinIO, Kvrocks y NATS. No usa el checkout hermano `../ragflow-be` ni incluye la consola web admin de RAGFlow.
 
-La API pública de RAGFlow documenta operaciones para crear y listar datasets, cargar documentos, iniciar su procesamiento y administrar chats. Las operaciones de Data Source y MCP varían entre versiones y sabores del backend. NEXO comprueba los endpoints antes de presentar el estado de disponibilidad y muestra el error del servicio cuando una operación concreta no está soportada. Data Sources son conexiones de ingesta asociadas a datasets; MCP son herramientas de consulta/acción aprobadas por un site admin.
+La API HTTP se consume desde el servidor NEXO con una credencial Bearer. Las rutas actuales cubren datasets, documentos (carga y procesamiento), chats/asistentes, sesiones, referencias de respuesta y grafo; el manifiesto de `vendor/ragflow/UPSTREAM.md` identifica la versión que se empaqueta. Data Sources/connectors y otras operaciones varían entre versiones o distribuciones. NEXO sondea endpoints para reportar capacidades, pero cada operación y forma de respuesta debe verificarse contra la instancia destino. Data Sources son conexiones de ingesta asociadas a datasets; las aprobaciones MCP registradas por NEXO pertenecen al estado de NEXO.
 
-La API de conversación usada hoy por NEXO no confirma que pueda ejecutar las aprobaciones MCP guardadas por NEXO para un chat seleccionado. El panel permite registrar servidores Streamable HTTP, descubrir sus herramientas y aprobarlas, pero el sitio mantiene la invocación deshabilitada hasta verificar un contrato compatible con la instancia conectada. Esto evita que la interfaz anuncie una capacidad que el asistente no puede ejecutar.
+NEXO permite registrar servidores Streamable HTTP, descubrir herramientas y aprobarlas. La invocación MCP desde asistentes sigue deshabilitada hasta confirmar un contrato compatible end-to-end con el backend conectado. No inferir que almacenar una aprobación habilita automáticamente su ejecución por RAGFlow.
+
+La configuración de deployment (`RAGFLOW_BASE_URL`, `RAGFLOW_API_KEY`) tiene precedencia de respaldo; un site admin puede guardar overrides, validar la conexión o volver al fallback. La API key no se expone al navegador y el override persistente se cifra con `NEXO_ENCRYPTION_KEY`. En una base nueva, el bootstrap crea un superusuario y una cuenta técnica regular separada para la API key; el API de datasets de RAGFlow no acepta superusuarios.
 
 Referencias oficiales consultadas: [RAGFlow HTTP API](https://ragflow.io/docs/v1.0.0-rc1/http_api_reference), [MCP overview](https://ragflow.io/docs/mcp_overview), [connect external MCP servers](https://ragflow.io/docs/develop/mcp/connect_an_external_mcp_to_ragflow).
