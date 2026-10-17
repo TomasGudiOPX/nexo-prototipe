@@ -118,11 +118,31 @@ export async function listTenantProviders() {
   return sanitizeTenantProviders(await ragflow("/api/v1/providers"));
 }
 
+/**
+ * RAGFlow only serves instances/models for providers already linked to the
+ * tenant; asking for an unlinked one fails with "no provider found". RAGFlow's
+ * own model settings gate on the added-provider list the same way, so read
+ * paths must not call the per-provider endpoints for a provider the tenant has
+ * not configured yet.
+ */
+async function tenantHasProvider(factory: string) {
+  const rows = asList(await ragflow("/api/v1/providers")).map(asRecord);
+  return rows.some(row => String(row.name ?? row.provider_name ?? "") === factory);
+}
+
+/** Links a provider to the tenant. Idempotent; RAGFlow answers success when the provider exists. */
+async function linkProvider(factory: string) {
+  if (await tenantHasProvider(factory)) return;
+  await ragflow("/api/v1/providers", { method: "PUT", body: JSON.stringify({ provider_name: factory }) });
+}
+
 export async function listProviderInstances(factory: string) {
+  if (!(await tenantHasProvider(factory))) return [];
   return sanitizeProviderInstances(await ragflow(providerPath(factory, undefined, "/instances")));
 }
 
 export async function listInstanceModels(factory: string, instance: string) {
+  if (!(await tenantHasProvider(factory))) return [];
   return sanitizeInstanceModels(await ragflow(providerPath(factory, instance, "/models")));
 }
 
@@ -150,10 +170,7 @@ export async function configureProvider(input: { factory: string; instanceName: 
   if (input.verify) {
     await ragflow(`${path}/connection`, { method: "POST", body: JSON.stringify(body) });
   } else {
-    const existing = asList(await ragflow("/api/v1/providers")).map(asRecord);
-    if (!existing.some(row => (row.name || row.provider_name) === input.factory)) {
-      await ragflow("/api/v1/providers", { method: "PUT", body: JSON.stringify({ provider_name: input.factory }) });
-    }
+    await linkProvider(input.factory);
     await ragflow(`${path}/instances`, { method: "POST", body: JSON.stringify(body) });
   }
   return { success: true, message: "" };

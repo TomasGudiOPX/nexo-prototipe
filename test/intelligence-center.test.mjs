@@ -359,6 +359,18 @@ test('hiding every node type keeps the type legend available', async () => {
   assert.equal(h.api.state.mergedNodes.length, 2);
 });
 
+test('file-local concepts without a document count survive the default sharing threshold', async () => {
+  const h = harness(); h.api.state.user = {id:'u',role:'user'};
+  h.api.state.datasetId = 'd'; h.api.state.datasetIds = ['d']; h.api.state.datasets = [{id:'d',name:'D'}];
+  h.sandbox.fetch = async path => path.includes('/graph')
+    ? Response.json({graph:{nodes:[{id:'doc1',name:'Boleta.pdf',kind:'document'},{id:'term:chunk%3Aboleta',name:'boleta',kind:'chunk',documentCount:null}],edges:[{source:'doc1',target:'term:chunk%3Aboleta',kind:'chunk'}]},graphType:'chunks'})
+    : Response.json({});
+  await h.api.loadGraph('d');
+  assert.equal(h.api.state.sharingThreshold, 2);
+  assert.equal(h.api.state.nodes.length, 2);
+  assert.equal(h.api.state.nodes.find(n => n.kind === 'chunk').documentCount, null);
+});
+
 test('2D layout spreads nodes across the view instead of a single ring', async () => {
   const h = harness(); h.api.state.user = {id:'u',role:'user'};
   h.api.state.datasetId = 'd'; h.api.state.datasetIds = ['d']; h.api.state.datasets = [{id:'d',name:'D'}];

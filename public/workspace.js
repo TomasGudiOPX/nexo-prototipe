@@ -99,7 +99,7 @@ async function workspacesPage() {
       : "";
     const datasetPills = w.datasets.length
       ? w.datasets.map(x => `<span class="resource-tag">▤ ${esc(x.name)}${unbindButton("dataset", x)}</span>`).join("")
-      : `<span class="muted" style="font-size: 11px">Sin datasets vinculados</span>`;
+      : `<span class="muted" style="font-size: 11px">Sin fuentes vinculadas</span>`;
     const assistantPills = w.assistants.length
       ? w.assistants.map(x => `<span class="resource-tag" style="border-color:#3a3250; background:#1c1726; color:#caa5f7;">◈ ${esc(x.name)}${unbindButton("assistant", x)}</span>`).join("")
       : `<span class="muted" style="font-size: 11px">Sin asistentes vinculados</span>`;
@@ -119,7 +119,7 @@ async function workspacesPage() {
           </div>
 
           <div class="workspace-metrics">
-            <span class="workspace-metric-chip" title="Datasets vinculados">▤ <b>${w.datasets.length}</b> datasets</span>
+            <span class="workspace-metric-chip" title="Fuentes vinculadas">▤ <b>${w.datasets.length}</b> fuentes</span>
             <span class="workspace-metric-chip" title="Asistentes vinculados">◈ <b>${w.assistants.length}</b> asistentes</span>
             <span class="workspace-metric-chip" title="Miembros con acceso">👥 <b>${w.memberCount}</b> miembros</span>
           </div>
@@ -135,10 +135,10 @@ async function workspacesPage() {
               <summary style="font-size: 11px; font-weight: 600; color: var(--lime); cursor: pointer;">⚙ Vincular nuevos recursos ▾</summary>
               <div style="margin-top: 10px;">
                 <div class="toolbar" style="margin-bottom: 10px;">
-                  <button type="button" class="btn secondary small" data-create-dataset="${esc(w.id)}">+ Crear dataset en RAGFlow</button>
+                  <button type="button" class="btn secondary small" data-create-dataset="${esc(w.id)}">+ Crear fuente en RAGFlow</button>
                 </div>
                 <div style="display: grid; gap: 8px;">
-                  <label style="font-size: 11px;">Vincular dataset existente
+                  <label style="font-size: 11px;">Vincular fuente existente
                     <select data-bind="datasets" data-workspace="${esc(w.id)}">
                       <option value="">Cargando catálogo…</option>
                     </select>
@@ -202,11 +202,11 @@ async function workspacesPage() {
 }
 
 async function knowledgePage() {
-  if (!state.workspace) return `${heading("Documentos", "Consultá documentos de una fuente vinculada a tu espacio.")}${empty("Seleccioná un espacio y vinculá un dataset.")}`;
+  if (!state.workspace) return `${heading("Documentos", "Consultá documentos de una fuente vinculada a tu espacio.")}${empty("Seleccioná un espacio y vinculá una fuente.")}`;
   const resources = await api(`/api/workspaces/${encodeURIComponent(state.workspaceId)}/resources`);
-  if (!resources.datasets.length) return `${heading("Documentos", `Espacio: ${esc(state.workspace.name)}`)}${empty("Este espacio todavía no tiene datasets vinculados.")}`;
+  if (!resources.datasets.length) return `${heading("Documentos", `Espacio: ${esc(state.workspace.name)}`)}${empty("Este espacio todavía no tiene fuentes vinculadas.")}`;
   const requested = new URLSearchParams(location.search).get("dataset");
-  if (requested && !resources.datasets.some(d => d.id === requested)) return `${heading("Documentos")}${empty("El dataset seleccionado no está disponible en este espacio. Seleccioná una fuente autorizada en el Centro.")}`;
+  if (requested && !resources.datasets.some(d => d.id === requested)) return `${heading("Documentos")}${empty("La fuente seleccionada no está disponible en este espacio. Seleccioná una fuente autorizada en el Centro.")}`;
   const datasetId = requested || resources.datasets[0].id;
   const result = await api(`/api/workspaces/${encodeURIComponent(state.workspaceId)}/datasets/${encodeURIComponent(datasetId)}/documents`);
 
@@ -307,9 +307,7 @@ async function assistantsPage() {
         <p class="muted">Asistentes de ${esc(state.workspace.name)}: creá los tuyos, compartilos y consultá los que te compartieron.</p>
       </div>
       <div>
-        ${!canMutate() ? "" : datasets.length
-          ? `<button type="button" class="btn" id="openCreateAssistantBtn">+ Nuevo asistente</button>`
-          : `<button type="button" class="btn secondary small" data-goto-docs="${esc(state.workspaceId)}">Vinculá un dataset para crear asistentes</button>`}
+        ${canMutate() ? `<button type="button" class="btn" id="openCreateAssistantBtn">+ Nuevo asistente</button>` : ""}
       </div>
     </div>
 
@@ -334,7 +332,7 @@ async function activityPage() {
 
   function getActivityBadge(rawType) {
     const t = (rawType || "").toLowerCase();
-    if (t.includes("dataset") || t.includes("fuente")) return { label: "Dataset", badge: "badge", icon: "▤" };
+    if (t.includes("dataset") || t.includes("fuente")) return { label: "Fuente", badge: "badge", icon: "▤" };
     if (t.includes("doc") || t.includes("upload") || t.includes("parse")) return { label: "Documento", badge: "badge blue", icon: "📄" };
     if (t.includes("assistant") || t.includes("asistente") || t.includes("chat")) return { label: "Asistente", badge: "badge purple", icon: "◈" };
     if (t.includes("auth") || t.includes("login") || t.includes("seguridad") || t.includes("password")) return { label: "Seguridad", badge: "badge error", icon: "🔒" };
@@ -346,16 +344,16 @@ async function activityPage() {
     const translations = {
       "workspace.member.added": "Se agregó un miembro al espacio de trabajo.",
       "workspace.member.removed": "Se eliminó un miembro del espacio de trabajo.",
-      "assistant.query.succeeded": "El asistente de RAGFlow respondió una consulta.",
-      "assistant.query.failed": "Falló una solicitud al asistente de RAGFlow.",
-      "knowledge.operation.completed": "Se completó una operación de documento de RAGFlow.",
-      "knowledge.operation.failed": "Falló una operación de documento de RAGFlow.",
-      "workspace.datasets.unbound": "Se desvinculó el dataset.",
+      "assistant.query.succeeded": "El asistente respondió una consulta.",
+      "assistant.query.failed": "Falló una solicitud al asistente.",
+      "knowledge.operation.completed": "Se completó una operación de documentos.",
+      "knowledge.operation.failed": "Falló una operación de documentos.",
+      "workspace.datasets.unbound": "Se desvinculó la fuente.",
       "workspace.assistants.unbound": "Se desvinculó el asistente.",
     };
     if (translations[type]) return translations[type];
     if (type === "workspace.created") return summary.replace(/^Workspace created:\s*/i, "Se creó el espacio de trabajo: ");
-    if (type === "workspace.datasets.bound") return summary.replace(/^Dataset linked:\s*/i, "Dataset vinculado: ");
+    if (type === "workspace.datasets.bound") return summary.replace(/^Dataset linked:\s*/i, "Fuente vinculada: ");
     if (type === "workspace.assistants.bound") return summary.replace(/^Assistant linked:\s*/i, "Asistente vinculado: ");
     return summary;
   }
@@ -374,7 +372,7 @@ async function activityPage() {
         <input type="search" id="activitySearch" placeholder="⌕ Buscar por acción, actor o detalle…" style="flex: 1; min-width: 220px;">
         <select id="activityFilter" style="width: auto; min-width: 180px;">
           <option value="">Todos los tipos de evento</option>
-          <option value="dataset">Datasets</option>
+          <option value="dataset">Fuentes</option>
           <option value="doc">Documentos</option>
           <option value="assistant">Asistentes</option>
           <option value="workspace">Espacios de trabajo</option>
@@ -471,7 +469,31 @@ async function reportsPage() {
   // Everything inside `demo` is a labelled demonstration: RAGFlow does not expose
   // usage analytics yet. Only `events` and `workspaceCount` are measured.
   const demo = result.demo || { queries: 0, resolvedRate: 0, documentsProcessed: 0, averageResponseSeconds: 0, trend: [], assistants: [], insights: [] };
-  const peak = Math.max(1, ...demo.trend.map(item => item.value));
+  const trend = Array.isArray(demo.trend) ? demo.trend : [];
+  const peak = Math.max(1, ...trend.map(item => Number(item.value) || 0));
+  const chartWidth = 700;
+  const chartHeight = 240;
+  const chartBottom = 190;
+  const chartLeft = 42;
+  const chartRight = 18;
+  const chartHeightAvailable = 142;
+  const chartWidthAvailable = chartWidth - chartLeft - chartRight;
+  const trendChart = trend.length ? `<svg viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Consultas atendidas durante los últimos siete días" style="display:block; width:100%; height:auto; min-height:220px;">
+    ${[0, 25, 50, 75, 100].map(percent => {
+      const y = chartBottom - (percent / 100 * chartHeightAvailable);
+      return `<line x1="${chartLeft}" y1="${y}" x2="${chartWidth - chartRight}" y2="${y}" stroke="#2b3832" stroke-width="1"/><text x="${chartLeft - 8}" y="${y + 4}" fill="#9aa79e" font-size="11" text-anchor="end">${Math.round(peak * percent / 100)}</text>`;
+    }).join("")}
+    ${trend.map((item, index) => {
+      const value = Math.max(0, Number(item.value) || 0);
+      const slotWidth = chartWidthAvailable / trend.length;
+      const barWidth = Math.min(52, slotWidth * 0.58);
+      const x = chartLeft + index * slotWidth + (slotWidth - barWidth) / 2;
+      const barHeight = Math.round(value / peak * chartHeightAvailable);
+      const y = chartBottom - barHeight;
+      return `<g><title>${esc(item.day)}: ${value} consultas</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="5" fill="#a8c86d"/><text x="${x + barWidth / 2}" y="${y - 8}" fill="#edf1e8" font-size="12" font-weight="600" text-anchor="middle">${value}</text><text x="${x + barWidth / 2}" y="${chartBottom + 24}" fill="#9aa79e" font-size="12" text-anchor="middle">${esc(item.day)}</text></g>`;
+    }).join("")}
+    <line x1="${chartLeft}" y1="${chartBottom}" x2="${chartWidth - chartRight}" y2="${chartBottom}" stroke="#2b3832" stroke-width="1"/>
+  </svg>` : '<p class="muted">No hay consultas para mostrar.</p>';
   const demoNote = '<small class="muted">Dato de demostración</small>';
   return `
     ${heading("Reportes", "Seguimiento operativo del uso de conocimiento y asistentes.")}
@@ -487,7 +509,7 @@ async function reportsPage() {
     <section class="report-layout">
       <article class="panel">
         <div class="report-section-head"><div><h2>Consultas por día</h2><p class="muted">Últimos 7 días · ${scopeLabel}</p></div><span class="badge gray">Demostración</span></div>
-        <div class="report-chart" role="img" aria-label="Consultas atendidas durante los últimos siete días">${demo.trend.map(item => `<div class="report-bar-item"><span class="report-bar-value">${item.value}</span><div class="report-bar-track"><span class="report-bar" style="height: ${Math.max(12, Math.round(item.value / peak * 100))}%"></span></div><span class="report-bar-label">${esc(item.day)}</span></div>`).join("")}</div>
+        <div class="report-chart">${trendChart}</div>
       </article>
       <article class="panel report-insights"><div class="report-section-head"><div><h2>Hallazgos</h2><p class="muted">Señales de demostración, no medidas</p></div><span class="badge gray">Demostración</span></div><ul>${demo.insights.map(item => `<li>${esc(item)}</li>`).join("")}</ul></article>
     </section>
@@ -580,7 +602,7 @@ function connectorGroup(sourceId, connectors) {
     ${connectors.map(connector => `<div class="ds-row">
       <div class="ds-row-id">
         <b>${esc(connector.name || connector.id)}</b>
-        <span class="muted">${esc(connectorStatus(connector.status))}${connector.dataset_id ? " · dataset asociado" : ""}</span>
+        <span class="muted">${esc(connectorStatus(connector.status))}${connector.dataset_id ? " · fuente asociada" : ""}</span>
       </div>
       <button type="button" class="secondary" data-open-source="${esc(connector.id)}" data-source-key="${esc(sourceId)}" data-source-label="${esc(connector.name || info.name)}">Administrar</button>
     </div>`).join("")}
@@ -827,20 +849,40 @@ function bindPageActions() {
 
   // Same pattern as "+ Nuevo espacio": the create form lives in a modal.
   app.querySelector("#openCreateAssistantBtn")?.addEventListener("click", () => {
+    // A site admin can also create an assistant with no workspace: it stays as a
+    // collective assistant and can later be linked to any workspace.
+    const canCreateCollective = state.user.role === "site-admin";
+    const workspaceName = state.workspace?.name || "este espacio";
     openFormModal({
       title: "Nuevo asistente",
-      description: `Se crea en RAGFlow con un dataset de ${state.workspace?.name || "este espacio"} y queda registrado como tuyo.`,
+      description: canCreateCollective
+        ? `Se crea en RAGFlow y queda registrado como tuyo. Si elegís “Sin espacio” queda como asistente colectivo y podés vincularlo a cualquier espacio desde “Vincular un asistente existente”.`
+        : `Se crea en RAGFlow con los recursos de ${workspaceName} y queda registrado como tuyo.`,
       esc,
       fields: [
         { name: "name", label: "Nombre del asistente", maxlength: 128, required: true, placeholder: "Ej: Asistente de obra" },
-        { name: "dataset_id", label: "Dataset del espacio", type: "select", required: true, options: (state.assistantDatasets || []).map(d => ({ value: d.id, label: d.name })) },
+        { name: "dataset_id", label: "Fuente (opcional)", type: "select", options: [{ value: "", label: "Sin fuente" }, ...(state.assistantDatasets || []).map(d => ({ value: d.id, label: d.name }))] },
+        ...(canCreateCollective ? [{
+          name: "workspaceId",
+          label: "Espacio",
+          type: "select",
+          options: [
+            { value: "", label: "Sin espacio (colectivo)" },
+            { value: state.workspaceId, label: workspaceName, selected: true },
+          ],
+        }] : []),
       ],
       submitLabel: "Crear asistente",
       onSubmit: async values => {
-        // One request: the server records the author and links the assistant to
-        // this workspace, so any member with access can create their own.
-        await post("/api/admin/assistants", { name: values.name, dataset_ids: values.dataset_id ? [values.dataset_id] : [], workspaceId: state.workspaceId });
+        // One request: the server records the author and, when a workspace is
+        // given, links the assistant to it; without one it stays unbound.
+        const workspaceId = canCreateCollective ? String(values.workspaceId || "") : state.workspaceId;
+        await post("/api/admin/assistants", { name: values.name, dataset_ids: values.dataset_id ? [values.dataset_id] : [], ...(workspaceId ? { workspaceId } : {}) });
         await initialize();
+        if (!workspaceId) {
+          const message = "Asistente colectivo creado. Vinculalo a un espacio desde “Vincular un asistente existente”.";
+          if (typeof window.toast === "function") window.toast(message); else alert(message);
+        }
       },
     });
   });
@@ -1097,7 +1139,7 @@ function bindPageActions() {
     for (const kind of ["datasets", "assistants"]) {
       const select = app.querySelector(`[data-bind="${kind}"][data-workspace="${CSS.escape(workspaceId)}"]`);
       if (!select) continue;
-      select.innerHTML = `<option value="">Elegí ${kind === "datasets" ? "un dataset" : "un asistente"}…</option>${(catalogs[kind] || []).map(row => `<option value="${esc(row.id)}" data-name="${esc(row.name)}">${esc(row.name)}</option>`).join("")}`;
+      select.innerHTML = `<option value="">Elegí ${kind === "datasets" ? "una fuente" : "un asistente"}…</option>${(catalogs[kind] || []).map(row => `<option value="${esc(row.id)}" data-name="${esc(row.name)}">${esc(row.name)}</option>`).join("")}`;
       if (select.dataset.bound === "1") continue;
       select.dataset.bound = "1";
       select.addEventListener("change", async () => {
@@ -1134,12 +1176,12 @@ function bindPageActions() {
   app.querySelectorAll("[data-create-dataset]").forEach(button => button.addEventListener("click", () => {
     const workspaceId = button.dataset.createDataset;
     openFormModal({
-      title: "Crear dataset en RAGFlow",
-      description: "El dataset se crea en RAGFlow y se vincula a este espacio de trabajo.",
+      title: "Crear fuente en RAGFlow",
+      description: "La fuente se crea en RAGFlow y se vincula a este espacio de trabajo.",
       esc,
       fields: [
-        { name: "name", label: "Nombre del dataset", maxlength: 128, required: true, placeholder: "Ej: Pliegos y especificaciones" },
-        { name: "description", label: "Descripción (opcional)", maxlength: 500, placeholder: "Contenido del dataset…" },
+        { name: "name", label: "Nombre de la fuente", maxlength: 128, required: true, placeholder: "Ej: Pliegos y especificaciones" },
+        { name: "description", label: "Descripción (opcional)", maxlength: 500, placeholder: "Contenido de la fuente…" },
       ],
       submitLabel: "Crear y vincular",
       onSubmit: async values => {
@@ -1148,7 +1190,7 @@ function bindPageActions() {
         const payload = created?.data ?? created;
         const row = Array.isArray(payload) ? payload[0] : payload;
         const datasetId = String(row?.id ?? row?.dataset_id ?? "");
-        if (!datasetId) throw new Error("RAGFlow creó el dataset pero no devolvió su identificador.");
+        if (!datasetId) throw new Error("RAGFlow creó la fuente pero no devolvió su identificador.");
         await post(`/api/workspaces/${encodeURIComponent(workspaceId)}/resources`, { kind: "datasets", id: datasetId, name: String(row?.name ?? name) });
         catalogPromise = null;
         await initialize();

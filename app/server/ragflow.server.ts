@@ -39,10 +39,25 @@ export async function ragflow(path: string, init: RequestInit = {}) {
   return payload;
 }
 
+// Raw fetch against RAGFlow for binary payloads (document download/preview).
+// The JSON helper above parses response envelopes, which a file stream is not.
+export async function ragflowFetch(path: string, init: RequestInit = {}) {
+  const settings = effectiveRagflowSettings();
+  const base = settings.baseUrl?.replace(/\/+$/, "");
+  const token = settings.apiKey;
+  if (!base || !token) throw new RagflowError("RAGFlow no está configurado en el servidor.", 503);
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  try {
+    return await fetch(`${base}${path}`, { ...init, headers });
+  } catch {
+    throw new RagflowError("No se pudo conectar con RAGFlow.", 502);
+  }
+}
+
 export function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
-
 export function asList(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
   const body = asRecord(value);

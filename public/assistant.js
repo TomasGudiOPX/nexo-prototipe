@@ -1,3 +1,5 @@
+import { openDocumentUpload } from "./document-upload.js";
+
 // NEXO · Asistente de Inteligencia
 //
 // This module owns the assistant screen: context selection (space/dataset/assistant),
@@ -11,9 +13,9 @@
   const screen = document.getElementById("screen-assistant");
   if (!screen) return;
 
-  const WELCOME = "Hola. Soy el asistente de inteligencia de NEXO. Elijo las respuestas a partir de los documentos del dataset seleccionado y te muestro la evidencia que devuelve RAGFlow.";
+  const WELCOME = "Hola. Soy el asistente de inteligencia de NEXO. Elijo las respuestas a partir de los documentos de la fuente seleccionada y te muestro la evidencia que devuelve RAGFlow.";
   const SUGGESTIONS = [
-    "Resumí los puntos principales de este dataset.",
+    "Resumí los puntos principales de esta fuente.",
     "¿Qué procesos o procedimientos están documentados?",
     "¿Qué roles o responsabilidades se describen?",
     "¿Qué información aparece incompleta o pendiente?",
@@ -25,26 +27,40 @@
   };
   let hydrated = false;
 
+  // Voice-to-text (Web Speech API) and its UI state. `voiceBase` keeps the text
+  // already typed so dictation appends instead of replacing the draft.
+  const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null, listening = false, voiceBase = "", voiceMessage = "";
+
   // ---------------------------------------------------------------- styles
   const style = document.createElement("style");
   style.textContent = `
-    .chat-input{display:grid!important;grid-template-columns:minmax(0,1fr) 40px 40px;gap:10px!important;padding:12px!important;border-color:#354139!important;background:#121a1a!important;box-shadow:0 12px 34px rgba(0,0,0,.18)}
-    #assistantSourceBar{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 0 12px;border-bottom:1px solid rgba(165,190,165,.14)}
+    .chat-input{display:flex!important;flex-direction:column;gap:12px;padding:12px 14px 14px!important;border-color:#354139!important;background:#121a1a!important;box-shadow:0 12px 34px rgba(0,0,0,.18)}
+    #assistantSourceBar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0;border-bottom:1px solid rgba(165,190,165,.14)}
     #assistantSourceBar label{position:relative;display:grid;gap:3px;min-width:0;padding:7px 28px 7px 10px;border:1px solid rgba(165,190,165,.13);border-radius:7px;background:rgba(6,11,14,.34);color:#89968d;font-size:8px;font-weight:700;letter-spacing:.85px;line-height:1;text-transform:uppercase;transition:border-color 160ms ease,background-color 160ms ease}
     #assistantSourceBar label::after{content:'⌄';position:absolute;right:10px;bottom:8px;color:#9caf7d;font-size:13px;font-weight:400;pointer-events:none}
     #assistantSourceBar label:focus-within{border-color:rgba(181,207,126,.68);background:rgba(181,207,126,.055)}
-    #assistantSourceBar select{width:100%;min-width:0;padding:0;border:0;appearance:none;background:transparent;color:#e8eee9;font:600 12px/1.25 'DM Sans',sans-serif;outline:none;cursor:pointer;text-overflow:ellipsis}
+    #assistantSourceBar select{width:100%;min-width:0;padding:0;border:0;appearance:none;background:transparent;color:#e8eee9;color-scheme:dark;font:600 12px/1.25 'DM Sans',sans-serif;outline:none;cursor:pointer;text-overflow:ellipsis}
     #assistantSourceBar select:disabled{opacity:.48;cursor:not-allowed}
+    #assistantSourceBar option{background:#0d1517;color:#e8eee9}
     #assistantSourceStatus{grid-column:1/-1;margin:0;color:#d58d7c;font-size:11px;line-height:1.35}
     #assistantSourceStatus:empty{display:none}
-    .chat-input #chatInput{grid-column:1;min-width:0;min-height:40px;padding:0 4px!important;background:transparent!important}
-    .voice-control{grid-column:2;position:relative;width:40px;height:40px;align-self:stretch;justify-self:stretch;border:1px solid rgba(165,190,165,.18);border-radius:7px;background:#182221;cursor:not-allowed;opacity:.62}
-    .voice-control::before{content:'';position:absolute;top:10px;left:16px;width:7px;height:13px;border:1.5px solid #c2d0af;border-radius:6px}
-    .voice-control::after{content:'';position:absolute;top:16px;left:12px;width:15px;height:10px;border:1.5px solid #c2d0af;border-top:0;border-radius:0 0 10px 10px;box-shadow:7px 10px 0 -6px #c2d0af}
-    .chat-input .round{grid-column:3;width:40px;height:40px;align-self:stretch;justify-self:stretch;border-radius:7px!important;background:#b8ce7d!important;color:#162019!important;box-shadow:none!important;transition:transform 160ms ease,background-color 160ms ease}
-    .chat-input .round:hover{background:#c8dc91!important;transform:translateY(-1px)}
-    .chat-input .round:focus-visible{outline:2px solid #e8eee9;outline-offset:2px}
-    @media(max-width:760px){.chat-input{grid-template-columns:minmax(0,1fr) 44px 44px!important;padding:10px!important}#assistantSourceBar{grid-template-columns:1fr;gap:6px;padding-bottom:10px}#assistantSourceBar label{min-height:44px;padding:8px 31px 8px 11px}#assistantSourceBar label::after{bottom:13px}.voice-control,.chat-input .round{width:44px;height:44px}}
+    .chat-composer{display:flex;align-items:center;gap:4px;padding:5px 6px 5px 14px;border:1px solid #2a3833;border-radius:12px;background:#0d1517;transition:border-color 160ms ease,box-shadow 160ms ease}
+    .chat-composer:focus-within{border-color:#778d5b;box-shadow:0 0 0 3px rgba(183,212,126,.12)}
+    .chat-composer #chatInput{flex:1;min-width:0;min-height:34px;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#e1e8df;box-shadow:none!important}
+    .chat-composer .composer-btn{flex:0 0 auto;width:36px;height:36px;display:grid;place-items:center;padding:0;border:0;border-radius:9px;background:transparent;color:#aebba6;cursor:pointer;transition:background-color 160ms ease,color 160ms ease,transform 160ms ease}
+    .chat-composer .composer-btn:hover:not(:disabled){background:#1c2723;color:#e6f0d8}
+    .chat-composer .composer-btn:disabled{opacity:.38;cursor:not-allowed}
+    .chat-composer .composer-btn svg{width:18px;height:18px;display:block}
+    .chat-composer .voice-control{position:relative}
+    .chat-composer .voice-control.listening{background:rgba(184,206,125,.16);color:#d8e8ab}
+    .chat-composer .voice-control.listening::after{content:'';position:absolute;inset:0;border-radius:9px;border:1px solid rgba(184,206,125,.55);animation:nexoMicPulse 1.5s ease-out infinite}
+    @keyframes nexoMicPulse{0%{transform:scale(.92);opacity:.8}100%{transform:scale(1.28);opacity:0}}
+    .chat-composer .round{flex:0 0 auto;width:38px;height:38px;display:grid;place-items:center;padding:0;border:0;border-radius:9px;background:#b8ce7d;color:#162019;cursor:pointer;transition:transform 160ms ease,background-color 160ms ease}
+    .chat-composer .round:hover:not(:disabled){background:#c8dc91;transform:translateY(-1px)}
+    .chat-composer .round:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .chat-composer .round svg{width:18px;height:18px;display:block}
+    @media(max-width:760px){.chat-input{padding:10px!important}#assistantSourceBar{grid-template-columns:1fr;gap:6px;padding-bottom:10px}#assistantSourceBar label{min-height:44px;padding:8px 31px 8px 11px}#assistantSourceBar label::after{bottom:13px}.chat-composer{padding-left:12px}.chat-composer .composer-btn{width:40px;height:40px}.chat-composer .round{width:42px;height:42px}}
     .chat-evidence{display:grid;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #2b3a33}
     .chat-evidence>b{color:#a9bd86;font-size:10px;letter-spacing:1px;text-transform:uppercase}
     .chat-doc-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -90,7 +106,7 @@
   function notReadyReason() {
     if (!state.user) return "Iniciá sesión para consultar tus documentos.";
     if (!state.workspaceId && !isAdmin()) return "Elegí un espacio de trabajo autorizado para consultar.";
-    if (!state.datasetId) return state.workspaceId ? "Este espacio no tiene datasets vinculados." : "Elegí un dataset para consultar.";
+    if (!state.datasetId) return state.workspaceId ? "Este espacio no tiene fuentes vinculadas." : "Elegí una fuente para consultar.";
     if (state.workspaceId && !state.assistantId) return "Este espacio no tiene asistentes vinculados.";
     return "";
   }
@@ -99,7 +115,7 @@
   function applyWorkspace(datasetParam, assistantParam) {
     const workspace = currentWorkspace();
     state.datasets = (workspace?.datasets || [])
-      .map(row => ({ id: String(row.id ?? row.dataset_id ?? ""), name: String(row.name ?? row.dataset_name ?? "Dataset") }))
+      .map(row => ({ id: String(row.id ?? row.dataset_id ?? ""), name: String(row.name ?? row.dataset_name ?? "Fuente") }))
       .filter(row => row.id);
     state.assistants = (workspace?.assistants || [])
       .map(row => ({ id: String(row.id ?? row.chat_id ?? ""), name: String(row.name ?? "Asistente") }))
@@ -187,7 +203,7 @@
     };
 
     bar.append(
-      build("Dataset", state.datasets, state.datasetId, value => {
+      build("Fuente", state.datasets, state.datasetId, value => {
         state.datasetId = value;
         state.conversationId = ""; state.messages = []; state.sessions = [];
         void loadSessions("").then(() => { syncUrl(); renderAll(); });
@@ -214,16 +230,19 @@
     bar.append(status);
   }
 
-  // The shell injects an MCP placeholder into this screen; the assistant has no
-  // tool selector, so it is removed whenever it appears.
-  function dropMcpPlaceholder() {
+  // The shell injects an MCP placeholder and a source strip into this screen.
+  // The assistant owns both concerns here, so they are removed on sight.
+  function dropShellExtras() {
     const layout = screen.querySelector(".assistant-layout");
     if (!layout) return;
-    const drop = () => document.getElementById("nexoMcpTools")?.remove();
+    const drop = () => {
+      document.getElementById("nexoMcpTools")?.remove();
+      document.getElementById("assistantContextStrip")?.remove();
+    };
     drop();
-    if (layout.dataset.mcpGuarded) return;
-    layout.dataset.mcpGuarded = "1";
-    new MutationObserver(drop).observe(layout, { childList: true });
+    if (layout.dataset.shellExtrasGuarded) return;
+    layout.dataset.shellExtrasGuarded = "1";
+    new MutationObserver(drop).observe(layout, { childList: true, subtree: true });
   }
 
   // The design's side panel keeps the brain, its status and the notice. The
@@ -238,11 +257,14 @@
     const notice = side.querySelector(".notice");
     if (notice) notice.replaceChildren(
       el("b", null, "Fuentes y contexto"),
-      el("span", "notice-summary", currentDataset() ? `Consultando ${currentDataset().name} con ${currentAssistant()?.name || "el asistente seleccionado"}.` : "Elegí un dataset y un asistente para comenzar."),
-      el("span", "notice-detail", "Los documentos relacionados aparecen junto a cada respuesta."),
+      el("span", "notice-summary", currentDataset() ? `Consultando ${currentDataset().name} con ${currentAssistant()?.name || "el asistente seleccionado"}.` : "Elegí una fuente y un asistente para comenzar."),
+      el("span", "notice-detail", "Subí documentos desde la barra y aparecerán junto a cada respuesta."),
       el("span", "notice-detail", state.conversationId ? "Esta sesión conserva el contexto de la conversación." : "Una nueva consulta iniciará una sesión de conversación."),
     );
+    // The shell prepends a redundant "Espacio · Datasets · Cambiar" strip to the
+    // chatbox; the composer already shows the active source.
     document.getElementById("assistantSource")?.remove();
+    document.getElementById("assistantContextStrip")?.remove();
   }
 
   function renderSuggestions() {
@@ -262,15 +284,127 @@
     tidySidePanel();
   }
 
-  function addVoiceControl() {
-    const composer = screen.querySelector(".chat-input");
-    if (!composer || composer.querySelector(".voice-control")) return;
-    const voice = el("button", "voice-control");
-    voice.type = "button";
-    voice.disabled = true;
-    voice.title = "Voz a texto · Próximamente";
-    voice.setAttribute("aria-label", "Voz a texto, próximamente");
-    composer.append(voice);
+  // ---------------------------------------------------------------- composer
+  // The composer is a single bar: the text field, the attachment control, the
+  // dictation microphone and the send action share one border, so the mic sits
+  // inside the bar instead of beside it.
+  const ICONS = {
+    attach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>',
+    send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  };
+
+  function composerButton(className, label, title, icon, onClick) {
+    const button = el("button", `composer-btn ${className}`);
+    button.type = "button";
+    button.innerHTML = icon;
+    button.setAttribute("aria-label", label);
+    button.title = title;
+    button.addEventListener("click", onClick);
+    return button;
+  }
+
+  function ensureComposer() {
+    const host = screen.querySelector(".chat-input");
+    if (!host) return null;
+    const existing = host.querySelector(".chat-composer");
+    if (existing) return existing;
+    const bar = el("div", "chat-composer");
+    const input = host.querySelector("#chatInput");
+    const send = host.querySelector(".round");
+    bar.append(composerButton("attach-control", "Subir documentos al agente", "Subir documentos", ICONS.attach, openUpload));
+    if (input) bar.append(input);
+    const voice = composerButton("voice-control", "Dictar por voz", "Dictar por voz", ICONS.mic, toggleVoiceRecognition);
+    voice.setAttribute("aria-pressed", "false");
+    bar.append(voice);
+    if (send) { send.innerHTML = ICONS.send; send.setAttribute("aria-label", "Enviar consulta"); bar.append(send); }
+    host.append(bar);
+    return bar;
+  }
+
+  // Dictated words are inserted into the composer; the draft stays editable so
+  // the transcript can be corrected before sending.
+  function voiceSupported() {
+    return Boolean(SpeechRecognitionImpl) && window.isSecureContext !== false;
+  }
+
+  function setListening(on) {
+    listening = on;
+    const mic = screen.querySelector(".chat-composer .voice-control");
+    if (mic) {
+      mic.classList.toggle("listening", on);
+      mic.setAttribute("aria-pressed", String(on));
+      mic.setAttribute("aria-label", on ? "Detener dictado por voz" : "Dictar por voz");
+      mic.title = on ? "Detener dictado" : "Dictar por voz";
+    }
+    document.getElementById("voiceOrb")?.classList.toggle("listening", on);
+    renderStatus();
+  }
+
+  function toggleVoiceRecognition() {
+    if (listening) { recognition?.stop(); return; }
+    if (!voiceSupported()) return;
+    if (!recognition) {
+      recognition = new SpeechRecognitionImpl();
+      recognition.lang = navigator.language || "es-AR";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.onstart = () => setListening(true);
+      recognition.onresult = event => {
+        let finalText = "", interim = "";
+        for (let index = event.resultIndex; index < event.results.length; index++) {
+          const result = event.results[index];
+          if (result.isFinal) finalText += result[0].transcript;
+          else interim += result[0].transcript;
+        }
+        if (finalText.trim()) voiceBase = `${voiceBase} ${finalText}`.replace(/\s+/g, " ").trim();
+        const field = document.getElementById("chatInput");
+        if (field) field.value = [voiceBase, interim.trim()].filter(Boolean).join(" ").trim();
+      };
+      recognition.onerror = event => {
+        voiceMessage = ({
+          "not-allowed": "Permiso de micrófono denegado.",
+          "service-not-allowed": "El navegador bloqueó el dictado por voz.",
+          "audio-capture": "No se encontró un micrófono disponible.",
+          "no-speech": "No se detectó voz. Probá de nuevo.",
+          network: "El servicio de voz no respondió.",
+        })[event.error] || "No se pudo iniciar el dictado por voz.";
+        setListening(false);
+      };
+      recognition.onend = () => { setListening(false); document.getElementById("chatInput")?.focus(); };
+    }
+    voiceMessage = "";
+    voiceBase = String(document.getElementById("chatInput")?.value || "").trim();
+    try { recognition.start(); }
+    catch { /* A start while the engine is already running is ignored. */ }
+  }
+
+  // Documents are uploaded to the dataset selected in the composer, reusing the
+  // same dialog as the Documentos screen.
+  function canUpload() { return Boolean(state.datasetId && (state.workspaceId || isAdmin())); }
+
+  function uploadEndpoint() {
+    if (!state.datasetId) return "";
+    return state.workspaceId
+      ? `/api/workspaces/${encodeURIComponent(state.workspaceId)}/datasets/${encodeURIComponent(state.datasetId)}/documents`
+      : `/api/admin/datasets/${encodeURIComponent(state.datasetId)}/documents`;
+  }
+
+  async function uploadFile(endpoint, init) {
+    const response = await fetch(endpoint, init);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || `La carga falló (${response.status}).`);
+    return body;
+  }
+
+  function openUpload() {
+    if (!canUpload()) { state.note = notReadyReason() || "Elegí una fuente antes de subir documentos."; renderAll(); return; }
+    openDocumentUpload({
+      endpoint: uploadEndpoint(),
+      datasetName: currentDataset()?.name || "la fuente seleccionada",
+      upload: uploadFile,
+      onComplete: () => { voiceMessage = ""; renderStatus("Documentos cargados. Procesalos en Documentos para que el asistente pueda consultarlos."); },
+    });
   }
 
   function evidenceBlock(references) {
@@ -325,12 +459,25 @@
   function renderReadyState() {
     const input = document.getElementById("chatInput");
     const sendButton = screen.querySelector(".chat-input .round");
+    const micButton = screen.querySelector(".chat-composer .voice-control");
+    const attachButton = screen.querySelector(".chat-composer .attach-control");
     const reason = notReadyReason();
+    const blocked = Boolean(reason) || state.busy;
     if (input) {
-      input.disabled = Boolean(reason) || state.busy;
+      input.disabled = blocked;
       input.placeholder = reason || "Escribí tu consulta al cerebro de NEXO…";
     }
-    if (sendButton) sendButton.disabled = Boolean(reason) || state.busy;
+    if (sendButton) sendButton.disabled = blocked;
+    if (micButton) {
+      micButton.disabled = blocked || !voiceSupported();
+      if (!voiceSupported()) { micButton.title = "Dictado por voz no disponible en este navegador"; micButton.setAttribute("aria-label", "Dictado por voz no disponible"); }
+    }
+    if (attachButton) {
+      attachButton.disabled = blocked || !canUpload();
+      const uploadable = canUpload();
+      attachButton.title = uploadable ? "Subir documentos" : "Elegí una fuente para subir documentos";
+      attachButton.setAttribute("aria-label", uploadable ? "Subir documentos al agente" : "Subir documentos, requiere una fuente seleccionada");
+    }
     let help = document.getElementById("assistantReady");
     if (reason) {
       if (!help) { help = el("div", "assistant-ready"); help.id = "assistantReady"; screen.querySelector(".chatbox")?.prepend(help); }
@@ -348,12 +495,16 @@
 
   function renderStatus(text) {
     const status = document.getElementById("brainStatus");
-    if (status) status.textContent = text || (notReadyReason() ? "Esperando selección" : "●  Listo para consultar");
+    if (!status) return;
+    if (text) { status.textContent = text; return; }
+    if (listening) { status.textContent = "◉  Escuchando…"; return; }
+    if (voiceMessage) { status.textContent = voiceMessage; return; }
+    status.textContent = notReadyReason() ? "Esperando selección" : "●  Listo para consultar";
   }
 
   function renderAll() {
-    dropMcpPlaceholder();
-    sourceBar(); addVoiceControl(); renderSuggestions(); renderSidePanel(); renderChat(); renderReadyState(); renderStatus();
+    dropShellExtras();
+    sourceBar(); ensureComposer(); renderSuggestions(); renderSidePanel(); renderChat(); renderReadyState(); renderStatus();
   }
 
   // ---------------------------------------------------------------- actions
@@ -361,6 +512,8 @@
     const input = document.getElementById("chatInput");
     const text = String(question ?? input?.value ?? "").trim();
     if (!text || state.busy) return;
+    if (listening) recognition?.stop();
+    voiceMessage = ""; voiceBase = "";
     const reason = notReadyReason();
     if (reason) { state.note = reason; renderAll(); return; }
     if (input) input.value = "";
@@ -391,6 +544,7 @@
     state.messages = [];
     state.conversationId = "";
     state.note = "";
+    voiceMessage = "";
     syncUrl();
     renderChat(); renderReadyState(); renderStatus();
   }
@@ -400,6 +554,7 @@
   window.sendChat = () => void send();
   window.ask = text => { window.go?.("assistant"); void send(text); };
   window.resetChat = reset;
+  window.toggleVoice = toggleVoiceRecognition;
 
   const previousGo = window.go;
   window.go = function (id) {
@@ -420,7 +575,7 @@
   window.addEventListener("nexo-session-changed", () => void refresh());
   document.getElementById("nexoWorkspace")?.addEventListener("change", () => void refresh());
 
-  window.NexoAssistant = { refresh, send, state };
+  window.NexoAssistant = { refresh, send, state, upload: openUpload };
 
   const start = new URLSearchParams(location.search).get("vista") === "assistant";
   void (start ? refresh() : hydrate().then(renderAll));

@@ -162,7 +162,7 @@ export function openConnectorDetail({ connector, api, post, esc, onChanged }) {
         <div><dt>Frecuencia de actualización</dt><dd>${esc(connectorData.refresh_freq || 0)} s</dd></div>
         <div><dt>Última actualización</dt><dd>${esc(connectorData.update_date || "—")}</dd></div>
       </dl>
-      <label class="ds-associate">Dataset asociado
+      <label class="ds-associate">Fuente de conocimiento asociada
         <select data-dataset><option value="">Sin asociar</option>${options}</select>
       </label>
       <div class="toolbar">
@@ -181,7 +181,7 @@ export function openConnectorDetail({ connector, api, post, esc, onChanged }) {
       try {
         await api(path, { method: "PATCH", body: JSON.stringify({ dataset_id: event.currentTarget.value }) });
         changed = true;
-        message(event.currentTarget.value ? "Dataset asociado." : "Asociación quitada.");
+        message(event.currentTarget.value ? "Fuente asociada." : "Asociación quitada.");
       } catch (error) { message(error.message, true); }
     });
     body.querySelector("[data-test]").addEventListener("click", async () => {
@@ -212,7 +212,7 @@ export function openConnectorDetail({ connector, api, post, esc, onChanged }) {
     });
     body.querySelector("[data-rebuild]").addEventListener("click", async () => {
       const datasetId = body.querySelector("[data-dataset]").value;
-      if (!datasetId) return message("Asociá un dataset antes de sincronizar esta fuente.", true);
+      if (!datasetId) return message("Asociá una fuente de conocimiento antes de sincronizar.", true);
       message("Iniciando la sincronización…");
       try { await post(`${path}?operation=rebuild`, { datasetId }); message("Sincronización iniciada."); }
       catch (error) { message(error.message, true); }

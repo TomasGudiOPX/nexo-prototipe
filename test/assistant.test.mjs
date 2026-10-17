@@ -117,7 +117,11 @@ function harness({ search = "", session = { user: null }, workspaces = { workspa
   sandbox.window = sandbox;
   sandbox.Event = class { constructor(type) { this.type = type; } };
   sandbox.MutationObserver = class { constructor(fn) { this.fn = fn; } observe() {} disconnect() {} };
-  const source = readFileSync(new URL("../public/assistant.js", import.meta.url), "utf8");
+  const raw = readFileSync(new URL("../public/assistant.js", import.meta.url), "utf8");
+  // assistant.js is an ES module in the browser; this harness runs it as a
+  // classic script, so top-level imports are stripped and stubbed here.
+  const source = raw.replace(/^import\s+[^;]+;\n?/gm, "");
+  sandbox.openDocumentUpload = () => {};
   vm.runInNewContext(source, sandbox);
   return { sandbox, nodes, calls, screen, feed, input, round, suggestions, side, stale, get url() { return url.href; } };
 }
@@ -201,11 +205,11 @@ test("assistant keeps context controls inside the query composer and omits the M
   const composer = h.screen.querySelector(".chat-input");
   assert.equal(bar.parentElement, composer);
   assert.equal(composer.children[0], bar, "context controls lead the query composer");
-  assert.equal(bar.children[0].children[0].textContent, "Dataset");
+  assert.equal(bar.children[0].children[0].textContent, "Fuente");
   assert.equal(bar.children[1].children[0].textContent, "Asistente");
   assert.equal(bar.children[2].children[0].textContent, "Sesión");
   assert.equal(bar.children[3].id, "assistantSourceStatus");
-  assert.equal(composer.querySelector(".voice-control")?.disabled, true, "voice input is visibly unavailable until implemented");
+  assert.equal(composer.querySelector(".voice-control")?.disabled, true, "voice input stays disabled when the browser cannot dictate");
   assert.equal(h.nodes.has("assistantContext"), false, "no duplicated space selector");
 
   // The shell may inject the MCP placeholder again; the module removes it.

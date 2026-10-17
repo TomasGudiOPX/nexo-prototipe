@@ -2,8 +2,8 @@ export function openDocumentUpload({ endpoint, datasetName, upload, onComplete }
   const dialog = document.createElement('dialog');
   dialog.className = 'nexo-upload';
   dialog.setAttribute('aria-labelledby', 'uploadTitle');
-    dialog.innerHTML = `<div class="upload-heading"><h2 id="uploadTitle">Subir documentos</h2><button type="button" data-close aria-label="Cerrar">×</button></div><p data-destination></p><p>Elegí archivos o una carpeta con sus subcarpetas. Los archivos se agregan al dataset como documentos individuales; no se crean carpetas.</p><div class="upload-options"><button type="button" data-files>Seleccionar archivos</button><button type="button" data-folder>Seleccionar carpeta</button></div><input type="file" data-file-input multiple hidden><input type="file" data-folder-input webkitdirectory multiple hidden><p data-support hidden>Este navegador no permite seleccionar carpetas. Usá la opción de archivos.</p><p data-summary role="status">No seleccionaste archivos.</p><ul data-list aria-label="Archivos seleccionados"></ul><p data-status role="status" aria-live="polite"></p><div class="upload-actions"><button type="button" data-stop-queue style="display:none" class="secondary">Detener cola</button><button type="button" data-close>Cancelar</button><button type="button" data-submit disabled>Subir a RAGFlow</button></div>`;
-  dialog.querySelector('[data-destination]').textContent = `Dataset: ${datasetName}`;
+    dialog.innerHTML = `<div class="upload-heading"><h2 id="uploadTitle">Subir documentos</h2><button type="button" data-close aria-label="Cerrar">×</button></div><p data-destination></p><p>Elegí archivos o una carpeta con sus subcarpetas. Los archivos se agregan a la fuente como documentos individuales; no se crean carpetas.</p><div class="upload-options"><button type="button" data-files>Seleccionar archivos</button><button type="button" data-folder>Seleccionar carpeta</button></div><input type="file" data-file-input multiple hidden><input type="file" data-folder-input webkitdirectory multiple hidden><p data-support hidden>Este navegador no permite seleccionar carpetas. Usá la opción de archivos.</p><p data-summary role="status">No seleccionaste archivos.</p><ul data-list aria-label="Archivos seleccionados"></ul><p data-status role="status" aria-live="polite"></p><div class="upload-actions"><button type="button" data-stop-queue style="display:none" class="secondary">Detener cola</button><button type="button" data-close>Cancelar</button><button type="button" data-submit disabled>Subir a RAGFlow</button></div>`;
+  dialog.querySelector('[data-destination]').textContent = `Fuente: ${datasetName}`;
   const fileInput = dialog.querySelector('[data-file-input]');
   const folderInput = dialog.querySelector('[data-folder-input]');
   const submit = dialog.querySelector('[data-submit]');
@@ -76,7 +76,7 @@ export function openDocumentUpload({ endpoint, datasetName, upload, onComplete }
     busy = false;
     stopBtn.removeEventListener('click', onStop);
     stopBtn.style.display = 'none';
-    status.textContent = `${uploaded} archivos subidos · ${failed} con error${stopRequested ? ' · Cola detenida por el usuario' : ''}. ${failed ? 'Revisá el listado del dataset antes de volver a enviar los archivos con error.' : 'Podés cerrar y seleccionar los documentos para procesarlos.'}`;
+    status.textContent = `${uploaded} archivos subidos · ${failed} con error${stopRequested ? ' · Cola detenida por el usuario' : ''}. ${failed ? 'Revisá el listado de la fuente antes de volver a enviar los archivos con error.' : 'Podés cerrar y seleccionar los documentos para procesarlos.'}`;
     dialog.querySelectorAll('[data-close]').forEach(button => { button.disabled = false; });
     dialog.querySelector('.upload-actions [data-close]').textContent = 'Cerrar';
     // Keep results visible; closing refreshes the document list without resending successes.

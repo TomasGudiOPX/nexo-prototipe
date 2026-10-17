@@ -278,6 +278,69 @@
   font-size: 11px;
 }
 
+/* Icon-only row actions (preview, download, details). Scoped under
+   .document-manager to outrank the generic button rule above. */
+.document-manager .doc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #2b3a33;
+  border-radius: 7px;
+  background: #131b1c;
+  color: #c2d0b6;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.document-manager .doc-icon-btn:hover {
+  border-color: var(--green, #bed17a);
+  background: #192420;
+  color: #e6f0d8;
+}
+
+.document-manager .doc-icon-btn svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.document-manager .doc-drawer-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.document-manager .doc-drawer-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  border: 1px solid #2b3a33;
+  border-radius: 8px;
+  background: #131b1c;
+  color: #d3e0c2;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.document-manager .doc-drawer-action:hover {
+  border-color: var(--green, #bed17a);
+  background: #192420;
+  color: #eaf3dc;
+}
+
+.document-manager .doc-drawer-action svg {
+  width: 15px;
+  height: 15px;
+}
+
 .doc-pagination {
   display: flex;
   justify-content: flex-end;

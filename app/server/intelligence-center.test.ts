@@ -83,3 +83,26 @@ test("center contracts preserve membership, answer evidence, unavailable MCP, an
     assert.equal((await chatRoute.action(args(request("/api/datasets/d/chat",member,body)))).status,502);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("a single-document dataset renders its file and its own concepts instead of an empty graph", async () => {
+  const admin = auth.createUser({email:"single@center.test",displayName:"Single",password:randomBytes(24).toString("hex"),role:"site-admin"})! as NexoUser;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async input => {
+    const url = String(input);
+    if (url.includes("/graph")) return Response.json({data:{graph:{},mind_map:{}}});
+    if (url.includes("/documents")) return Response.json({data:{docs:[{id:"doc1",name:"Boleta-Pago (1).pdf",chunk_count:0}],total:1}});
+    return Response.json({data:[{id:"d1",name:"Boleta"}]});
+  };
+  try {
+    const cookie = auth.createSession(admin,new Request("https://nexo.test")).cookie.split(";")[0];
+    const request = new Request("https://nexo.test/api/datasets/d1/graph", {headers:{cookie}});
+    const payload = await (await graphRoute.loader({request,params:{datasetId:"d1"},context:{}} as any)).json();
+    assert.equal(payload.graphType,"chunks");
+    assert.deepEqual(payload.graph.nodes.filter((node: {kind:string}) => node.kind === "document").map((node: {id:string}) => node.id),["doc1"]);
+    const concepts = payload.graph.nodes.filter((node: {kind:string}) => node.kind !== "document" && node.kind !== "dataset");
+    assert.ok(concepts.length >= 1, "a single-file dataset must expose the file's own concepts");
+    // Local concepts are not shared bridges, so the sharing threshold cannot hide them.
+    assert.ok(concepts.every((node: {documentCount:number|null}) => node.documentCount === null));
+    assert.ok(payload.graph.edges.some((edge: {source:string;target:string}) => edge.source === "doc1" && String(edge.target).startsWith("term:")));
+  } finally { globalThis.fetch = originalFetch; }
+});

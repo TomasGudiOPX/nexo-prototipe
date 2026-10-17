@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>NEXO | Iniciar sesión</title>
+<link rel="stylesheet" href="/login.css">
+</head>
+<body class="login-page">
+<main class="login-shell">
+  <aside class="login-brand" aria-hidden="true">
+    <div class="login-orbit"><span>♧</span></div>
+    <strong class="login-wordmark">NEXO</strong>
+    <small>Inteligencia constructiva</small>
+    <p>Conectando espacios, personas y documentos en inteligencia real.</p>
+  </aside>
+  <section class="login-panel" aria-labelledby="loginTitle">
+    <p class="login-eyebrow">Plataforma inteligente</p>
+    <h1 id="loginTitle">Iniciar sesión</h1>
+    <p class="login-sub">Usá la cuenta que te asignó el administrador de NEXO para abrir tu centro de inteligencia.</p>
+    <form id="loginForm" class="login-form">
+      <label for="loginEmail">Email
+        <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="nombre@organizacion.com" required autofocus>
+      </label>
+      <label for="loginPassword">Contraseña
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+      </label>
+      <p id="loginError" class="login-error" role="alert" aria-live="polite"></p>
+      <button id="loginSubmit" class="login-submit" type="submit">Entrar</button>
+    </form>
+    <p class="login-note">Las cuentas se crean desde NEXO: no hay registro público. Si todavía no tenés acceso, contactá al administrador de tu organización.</p>
+  </section>
+</main>
+<script type="module" src="/login.js"></script>
+</body>
+</html>

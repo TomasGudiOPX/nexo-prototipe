@@ -25,7 +25,7 @@ The workspace selector stays in the top bar across the main screens. Changing it
 
 Configuración has selectable Conexión RAGFlow, Proveedores y modelos, Fuentes de datos and Usuarios y administradores sections. The selected section is retained in the URL's config parameter for refresh and browser history.
 
-1. Sign in and enter the Centro de Inteligencia.
+1. Sign in on the dedicated `/login.html` screen. The shell stays hidden behind a session gate, so an unauthenticated, expired or unverifiable session always lands back on that screen instead of revealing the application.
 2. Select an accessible workspace, dataset and assistant. If none are linked, the interface guides the user to setup instead of presenting demonstration data.
 3. Review the source graph, available summary counts and recent activity. Attention shows actual failed events from the activity returned, not a claim that every business risk has been assessed.
 4. Open Documentos to inspect the selected source. Administrators can upload and request processing; processing status comes from RAGFlow.

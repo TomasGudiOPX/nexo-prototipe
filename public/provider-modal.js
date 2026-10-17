@@ -95,7 +95,7 @@ export function openProviderModal({ providerName, api, post, esc, onChanged }) {
       </div>
       ${balance.length ? `<div class="provider-balance">${balance.map(b => `<div><span class="muted">${esc(b.label)}</span><b>${esc(b.value)}</b></div>`).join("")}</div>` : ""}
       <h3>Modelos</h3>
-      <p class="muted">RAGFlow usa el modelo predeterminado de cada tipo para la ingesta y el chat. Los datasets nuevos heredan el embedding predeterminado.</p>
+      <p class="muted">RAGFlow usa el modelo predeterminado de cada tipo para la ingesta y el chat. Las fuentes nuevas heredan el embedding predeterminado.</p>
       ${models.length ? `<div class="table-wrap"><table class="data-table">
         <thead><tr><th>Modelo</th><th>Tipo</th><th>Máximo de tokens</th><th>Estado</th><th></th></tr></thead>
         <tbody>${models.map(m => `<tr>

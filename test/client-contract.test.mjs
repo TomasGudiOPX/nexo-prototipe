@@ -96,6 +96,34 @@ test("data sources replace the API-key tab with a searchable, logo-driven catalo
   assert.doesNotMatch(routesSource, /api\/admin\/keys/);
 });
 
+test("sign-in runs on a dedicated screen that gates the shell until the session is valid", () => {
+  const loginHtml = readFileSync(resolve(root, "public/login.html"), "utf8");
+  const loginCss = readFileSync(resolve(root, "public/login.css"), "utf8");
+  const loginJs = readFileSync(resolve(root, "public/login.js"), "utf8");
+  // La pantalla vive en su propio archivo y el shell la enlaza.
+  assert.match(loginHtml, /<link rel="stylesheet" href="\/login\.css">/);
+  assert.match(loginHtml, /<script type="module" src="\/login\.js"><\/script>/);
+  assert.match(loginHtml, /id="loginForm"/);
+  assert.match(loginHtml, /id="loginPassword"[^>]*autocomplete="current-password"/);
+  assert.match(prototype, /<link rel="stylesheet" href="\/login\.css">/);
+  assert.match(prototype, /<script type="module" src="\/login\.js"><\/script>/);
+  assert.match(prototype, /id="nexoGate"/);
+  // Sin sesión válida ni el shell ni el gate muestran la aplicación.
+  assert.match(loginCss, /html:not\(\.nexo-authed\) #app\{display:none\}/);
+  assert.match(loginCss, /html\.nexo-authed #nexoGate\{display:none\}/);
+  assert.match(loginJs, /fetch\("\/api\/auth\/login"/);
+  assert.match(loginJs, /document\.documentElement\.classList\.add\("nexo-authed"\)/);
+  assert.match(loginJs, /if \(!user\) \{ goToLogin\(returnTo\); return; \}/);
+  // Sólo se vuelve al propio shell: no hay redirección abierta.
+  assert.match(loginJs, /url\.pathname !== SHELL_PATH\) return SHELL_PATH/);
+  // El diálogo modal anterior se retiró del shell.
+  assert.doesNotMatch(ragflow, /showModal\(\)[\s\S]{0,80}nexoSignInDialog/);
+  assert.doesNotMatch(ragflow, /nexoSignInDialog/);
+  assert.match(ragflow, /window\.nexoAuth\?\.goToLogin\?\.\(location\.href\)/);
+  // El servidor estático sirve la pantalla sin caché.
+  assert.match(nginx, /location = \/login\.html\s*\{[\s\S]*?Cache-Control "no-store"/);
+});
+
 test("assistants screen creates through a modal and shares with workspace members", () => {
   assert.match(workspaceShell, /Crear asistente/);
   assert.match(workspaceShell, /Tus asistentes/);
@@ -103,11 +131,16 @@ test("assistants screen creates through a modal and shares with workspace member
   assert.match(workspaceShell, /data-unbind-assistant/);
   assert.match(workspaceShell, /data-unbind-dataset/);
   assert.match(workspaceShell, /button:not\(\.resource-unbind\)/);
-  assert.match(workspaceShell, /workspaceId: state\.workspaceId/);
-  assert.doesNotMatch(workspaceShell, /Crear asistente en RAGFlow/);
   // Creation and sharing reuse the same modal as "+ Nuevo espacio".
   assert.match(workspaceShell, /id="openCreateAssistantBtn"/);
   assert.match(workspaceShell, /openFormModal/);
+  // A site admin can also create a collective assistant (no workspace) and link
+  // it to any workspace later; plain members keep creating inside their space.
+  assert.match(workspaceShell, /canCreateCollective/);
+  assert.match(workspaceShell, /Sin espacio \(colectivo\)/);
+  assert.match(workspaceShell, /canCreateCollective \? String\(values\.workspaceId \|\| ""\) : state\.workspaceId/);
+  assert.doesNotMatch(workspaceShell, /Vinculá una fuente para crear asistentes/);
+  assert.doesNotMatch(workspaceShell, /Crear asistente en RAGFlow/);
   assert.match(workspaceShell, /data-share-assistant/);
   assert.match(workspaceShell, /type: "checkboxes"/);
   // The shared modal helper grew the field types this screen needs.
@@ -137,4 +170,37 @@ test("user directory exposes roles and organisational areas", () => {
   // The interface mirrors the server permission helpers.
   assert.match(workspaceShell, /canMutate\(\)/);
   assert.match(workspaceShell, /canManageKnowledge\(\)/);
+});
+
+test("document rows expose preview, download and details as icon actions backed by the file route", () => {
+  const table = readFileSync(resolve(root, "public/document-table.js"), "utf8");
+  const preview = readFileSync(resolve(root, "public/document-preview.js"), "utf8");
+  const fileRoute = readFileSync(resolve(root, "app/routes/api.admin.datasets.$datasetId.documents.$documentId.ts"), "utf8");
+  // Row actions are icons, not the old "Detalles" text button.
+  assert.doesNotMatch(table, />Detalles</);
+  assert.match(table, /data-preview="\$\{esc\(row\.id\)\}"/);
+  assert.match(table, /openDocumentPreview/);
+  // Downloads reuse the same endpoint with the attachment flag.
+  assert.match(table, /download=1/);
+  assert.match(preview, /export function openDocumentPreview/);
+  assert.match(preview, /showModal\(\)/);
+  // DOCX preview unzips the OOXML container in place (no bundler dependency).
+  assert.match(preview, /extractDocxText/);
+  assert.match(preview, /deflate-raw/);
+  // EML preview decodes headers and MIME parts instead of dumping the source.
+  assert.match(preview, /export function parseEml/);
+  assert.match(preview, /quotedPrintableToBytes/);
+  assert.match(preview, /multipart\//);
+  // The proxy must not echo RAGFlow's generic octet-stream for a PDF.
+  const fileServer = readFileSync(resolve(root, "app/server/document-file.server.ts"), "utf8");
+  assert.match(fileServer, /pdf:\s*"application\/pdf"/);
+  assert.match(fileServer, /eml:\s*"text\/plain/);
+  assert.match(fileServer, /application\/octet-stream/i);
+  assert.match(fileServer, /download \? "attachment" : "inline"/);
+  // Both scopes proxy the stored file and gate access.
+  assert.match(fileRoute, /requireKnowledgeManager/);
+  assert.match(routesSource, /api\/admin\/datasets\/:datasetId\/documents\/:documentId/);
+  assert.match(routesSource, /api\/workspaces\/:workspaceId\/datasets\/:datasetId\/documents\/:documentId/);
+  assert.match(prototype, /document-preview\.css/);
+  assert.match(nginx, /document-preview/);
 });

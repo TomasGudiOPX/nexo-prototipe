@@ -1,3 +1,5 @@
+import { openDocumentPreview } from './document-preview.js';
+
 const views = new Map();
 const statuses = {
   UNSTART: 'Pendiente',
@@ -36,6 +38,12 @@ function fileExt(name) {
   return ext.length <= 4 ? ext : ext.slice(0, 4);
 }
 
+const ICON = {
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M5 21h14"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>',
+};
+
 export function documentTableMarkup(data, esc) {
   return `<section class="panel document-manager" data-document-table="${esc(JSON.stringify(data))}"></section>`;
 }
@@ -60,12 +68,22 @@ export function bindDocumentTable(app, { api, post, esc }) {
   let busy = false;
   let activeDetailDoc = null;
 
+  // One route serves both preview and download; `download=1` switches the server
+  // to an attachment so the browser saves the file instead of rendering inline.
+  const fileUrl = (doc, download = false) => {
+    const params = new URLSearchParams();
+    if (doc.name) params.set('name', doc.name);
+    if (download) params.set('download', '1');
+    const query = params.toString();
+    return `${data.endpoint}/${encodeURIComponent(doc.id)}${query ? `?${query}` : ''}`;
+  };
+
   root.innerHTML = `
     <div class="doc-top-bar">
       <div class="doc-filters">
         ${data.datasets && data.datasets.length ? `
           <label style="min-width: 200px">
-            <span>Dataset activo</span>
+            <span>Fuente activa</span>
             <select id="datasetSelect">
               ${data.datasets.map(d => `<option value="${esc(d.id)}" ${d.id === data.datasetId ? "selected" : ""}>${esc(d.name)}</option>`).join('')}
             </select>
@@ -123,7 +141,7 @@ export function bindDocumentTable(app, { api, post, esc }) {
             <th>Estado</th>
             <th data-sort-heading="chunks"><button type="button" data-sort="chunks">Fragmentos ↕</button></th>
             <th data-sort-heading="updatedAt"><button type="button" data-sort="updatedAt">Actualización ↕</button></th>
-            <th style="width: 80px; text-align: right">Acción</th>
+            <th style="width: 118px; text-align: right">Acción</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -216,6 +234,11 @@ export function bindDocumentTable(app, { api, post, esc }) {
     const content = root.querySelector('[data-drawer-content]');
 
     content.innerHTML = `
+      <div class="doc-drawer-actions">
+        <button type="button" class="doc-drawer-action" data-preview="${esc(doc.id)}" title="Vista previa">${ICON.eye}<span>Vista previa</span></button>
+        <a class="doc-drawer-action" href="${esc(fileUrl(doc, true))}" download="${esc(doc.name)}" title="Descargar">${ICON.download}<span>Descargar</span></a>
+      </div>
+
       <div class="doc-prop-list">
         <span class="doc-prop-label">Identificador</span>
         <span class="doc-prop-value">
@@ -342,11 +365,15 @@ export function bindDocumentTable(app, { api, post, esc }) {
           <td>${number(row.chunks)}</td>
           <td>${esc(date(row.updatedAt || row.createdAt))}</td>
           <td style="text-align: right">
-            <button type="button" data-open-detail="${esc(row.id)}" title="Ver detalles y metadatos">Detalles</button>
+            <div class="doc-row-actions">
+              <button type="button" class="doc-icon-btn" data-preview="${esc(row.id)}" title="Vista previa" aria-label="Vista previa de ${esc(row.name)}">${ICON.eye}</button>
+              <a class="doc-icon-btn" href="${esc(fileUrl(row, true))}" download="${esc(row.name)}" title="Descargar" aria-label="Descargar ${esc(row.name)}">${ICON.download}</a>
+              <button type="button" class="doc-icon-btn" data-open-detail="${esc(row.id)}" title="Ver detalles y metadatos" aria-label="Detalles de ${esc(row.name)}">${ICON.info}</button>
+            </div>
           </td>
         </tr>
       `;
-    }).join('') || `<tr><td colspan="${colCount}" class="empty">${documents.length ? 'No hay documentos que coincidan con la búsqueda o filtro.' : 'Este dataset todavía no tiene documentos cargados.'}</td></tr>`;
+    }).join('') || `<tr><td colspan="${colCount}" class="empty">${documents.length ? 'No hay documentos que coincidan con la búsqueda o filtro.' : 'Esta fuente todavía no tiene documentos cargados.'}</td></tr>`;
 
     root.querySelector('[data-page-info]').textContent = rows.length ? `Página ${view.page} de ${pages}` : 'Sin resultados';
     root.querySelector('[data-prev]').disabled = busy || view.page === 1;
@@ -439,6 +466,12 @@ export function bindDocumentTable(app, { api, post, esc }) {
         readable.style.display = isJson ? 'grid' : 'none';
         button.textContent = isJson ? 'Ver JSON sin procesar' : 'Ver campos legibles';
       }
+      return;
+    }
+
+    if (button.dataset.preview) {
+      const doc = documents.find(d => d.id === button.dataset.preview);
+      if (doc) openDocumentPreview({ url: fileUrl(doc), name: doc.name, downloadUrl: fileUrl(doc, true) });
       return;
     }
 

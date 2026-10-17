@@ -13,7 +13,7 @@ const GLYPHS = {
 
 // Order matches RAGFlow's `generateDataSourceInfo` so the grid reads the same.
 const SOURCES = {
-  rss: { name: "RSS", description: "Conectá un feed RSS o Atom público y sincronizá sus entradas en un dataset.", icon: "glyph:rss" },
+  rss: { name: "RSS", description: "Conectá un feed RSS o Atom público y sincronizá sus entradas en una fuente.", icon: "glyph:rss" },
   sitemap: { name: "Sitemap", description: "Conectá un sitemap.xml público para sincronizar las páginas web y PDFs listados.", icon: "glyph:globe" },
   google_cloud_storage: { name: "Google Cloud Storage", description: "Conectá un bucket de Google Cloud Storage para importar y sincronizar archivos.", icon: "svg:google-cloud-storage" },
   oci_storage: { name: "Oracle Storage", description: "Conectá un bucket de Oracle Cloud Object Storage para importar y sincronizar archivos.", icon: "svg:oracle-storage" },

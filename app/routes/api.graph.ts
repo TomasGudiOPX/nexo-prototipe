@@ -98,28 +98,40 @@ async function buildDocumentConnections(datasetId: string, datasetName: string, 
       .forEach(([word]) => addTerm(docId, word, "chunk"));
   });
 
-  const sharedTerms = [...termByKey.entries()]
+  const allTerms = [...termByKey.entries()];
+  const sharedTerms = allTerms
     .filter(([, term]) => term.documentIds.size >= 2 && term.documentIds.size <= 30)
     .sort((a, b) => b[1].documentIds.size - a[1].documentIds.size || a[1].label.localeCompare(b[1].label))
     .slice(0, 300);
+  // Shared terms are the inter-document bridges. A dataset with a single
+  // document (or documents with nothing in common) has none, so fall back to
+  // each file's own terms instead of rendering a graph with no concepts.
+  const localOnly = sharedTerms.length === 0;
+  const terms = localOnly ? allTerms.slice(0, 300) : sharedTerms;
   const docNodes = sourceDocs.map((doc, index) => ({
     id: String(doc.id ?? doc.document_id ?? doc.name ?? index),
     name: String(doc.name ?? doc.location ?? "Documento"),
     description: `${String(doc.ingestion_status ?? "Estado desconocido")}${doc.chunk_count !== undefined ? ` · ${String(doc.chunk_count)} fragmentos` : ""}`,
     kind: "document",
   }));
-  const termNodes = sharedTerms.map(([key, term]) => ({
-    id: `term:${encodeURIComponent(key)}`,
-    name: term.label,
-    description: `${term.kind === "metadata" ? "Metadato" : term.kind === "keyword" ? "Palabra clave de RAGFlow" : "Término compartido en fragmentos o nombres"} · presente en ${term.documentIds.size} documentos`,
-    kind: term.kind,
-    documentCount: term.documentIds.size,
-  }));
+  const termNodes = terms.map(([key, term]) => {
+    const shared = term.documentIds.size > 1;
+    const base = term.kind === "metadata" ? "Metadato" : term.kind === "keyword" ? "Palabra clave de RAGFlow" : shared ? "Término compartido en fragmentos o nombres" : "Término del archivo (fragmentos o nombre)";
+    return {
+      id: `term:${encodeURIComponent(key)}`,
+      name: term.label,
+      description: `${base} · ${shared ? `presente en ${term.documentIds.size} documentos` : "presente en este archivo"}`,
+      kind: term.kind,
+      // Single-file terms are not shared bridges, so the sharing threshold
+      // must not hide them and leave the graph empty.
+      documentCount: shared ? term.documentIds.size : null,
+    };
+  });
   const hubId = `dataset:${datasetId}`;
-  const hub = { id: hubId, name: datasetName || "Dataset", description: `Dataset con ${sourceDocs.length} documentos. Los enlaces a conceptos se basan en datos compartidos.`, kind: "dataset", x: 0, y: 0, z: 0 };
-  const edges: { source: string; target: string; kind: TermKind | "membership" | "shared-document"; label: string }[] = sharedTerms.flatMap(([key, term]) => [...term.documentIds].map(docId => ({ source: docId, target: `term:${encodeURIComponent(key)}`, kind: term.kind, label: term.kind === "metadata" ? "Metadato compartido" : term.kind === "keyword" ? "Palabra clave" : "Término compartido" })));
+  const hub = { id: hubId, name: datasetName || "Dataset", description: `Dataset con ${sourceDocs.length} documentos.`, kind: "dataset", x: 0, y: 0, z: 0 };
+  const edges: { source: string; target: string; kind: TermKind | "membership" | "shared-document"; label: string }[] = terms.flatMap(([key, term]) => [...term.documentIds].map(docId => ({ source: docId, target: `term:${encodeURIComponent(key)}`, kind: term.kind, label: term.kind === "metadata" ? "Metadato compartido" : term.kind === "keyword" ? "Palabra clave" : "Término compartido" })));
   const documentPairs = new Set<string>();
-  for (const [, term] of sharedTerms) {
+  for (const [, term] of terms) {
     const ids = [...term.documentIds];
     for (let index = 1; index < ids.length && documentPairs.size < 1000; index += 1) {
       const first = ids[0], second = ids[index];
@@ -138,7 +150,7 @@ async function buildDocumentConnections(datasetId: string, datasetName: string, 
     documentCount: docNodes.length,
     conceptCount: termNodes.length,
     connectionCount: edges.length,
-    message: `${docNodes.length} archivos · ${termNodes.length} conceptos compartidos desde chunks, nombres y metadatos.`,
+    message: `${docNodes.length} archivos · ${termNodes.length} ${localOnly ? "conceptos del archivo" : "conceptos compartidos"} desde chunks, nombres y metadatos.`,
   };
 }
 

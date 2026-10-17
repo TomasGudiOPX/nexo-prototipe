@@ -10,10 +10,10 @@
     projectTab: "summary", datasets: [], datasetsLoaded: false, workspaces: [], assistants: [],
     nodes: [], edges: [], mergedNodes: [], mergedEdges: [], searchMatch: new Set(),
     documentCount: null, workspaceCount: null, eventCount: null, recentEvents: [], activityError: "",
-    dashboardStatus: "Iniciá sesión para conectar tu espacio con RAGFlow.",
+    dashboardStatus: "Iniciá sesión para conectar tu espacio de conocimiento.",
     showCenterConnections: true, showRelatedConnections: true,
     hiddenKinds: new Set(), searchQuery: "", mode: "merged",
-    sharingThreshold: 2, minDegree: 0, paused: false, layout2d: false, rotationSpeed: 1, showLabels: true, maxDatasets: 3, zoom: 1, panX: 0, panY: 0,
+    sharingThreshold: 2, minDegree: 0, paused: false, layout2d: false, rotationSpeed: 1, showLabels: true, showCenterText: true, maxDatasets: 3, zoom: 1, panX: 0, panY: 0,
     busy: false, chatBusy: false, conversationId: "", screen: "dashboard", user: null, tools: [], mcpUnavailableReason: "", configuredToolCount: 0,
     selectedNode: "",
   };
@@ -35,18 +35,18 @@
   const canvas = document.createElement("canvas");
   canvas.id = "ragflowGraphCanvas";
   canvas.className = dashboard.className;
-  canvas.setAttribute("aria-label", "Grafo del dataset RAGFlow seleccionado");
+  canvas.setAttribute("aria-label", "Grafo de la fuente seleccionada");
   wrap.appendChild(canvas);
   const brainPanel = document.querySelector(".brain-panel") || wrap;
 
   const heading = document.querySelector("#screen-dashboard .brain-top");
   const baseBrain = document.querySelector("#screen-dashboard .brain-overlay p");
-  if (baseBrain) baseBrain.textContent = "Conocimiento conectado a tus datasets de RAGFlow";
+  if (baseBrain) baseBrain.textContent = "Conocimiento conectado a tus fuentes";
 
   // ---- Intro banner (replaces the old source-selection row) ----
   const contextControls = document.createElement("div");
   contextControls.className = "panel panel-pad nexo-intro-row";
-  contextControls.innerHTML = '<div class="nexo-intro"><h3>Explorá tu conocimiento como un grafo</h3><p id="nexoIntro">NEXO conecta los documentos de tus datasets de RAGFlow y muestra cómo se relacionan por <b>palabras clave</b>, <b>metadatos</b> y <b>fragmentos compartidos</b>. Elegí un espacio en la barra superior, abrí <b>Configurar grafo</b> y seleccioná uno o más datasets para explorar.</p><div class="nexo-context-status"><span id="ragflowDatasetStatus" role="status">Conectando con RAGFlow…</span><button type="button" id="ragflowRetry" hidden>Reintentar conexión</button></div></div>';
+  contextControls.innerHTML = '<div class="nexo-intro"><h3>Explorá tu conocimiento como un grafo</h3><p id="nexoIntro">NEXO conecta los documentos de tus fuentes y muestra cómo se relacionan por <b>palabras clave</b>, <b>metadatos</b> y <b>fragmentos compartidos</b>. Elegí un espacio en la barra superior, abrí <b>Configurar grafo</b> y seleccioná una o más fuentes para explorar.</p><div class="nexo-context-status"><span id="ragflowDatasetStatus" role="status">Conectando con tu fuente de conocimiento…</span><button type="button" id="ragflowRetry" hidden>Reintentar conexión</button></div></div>';
   $("screen-dashboard")?.prepend(contextControls);
   const status = $("ragflowDatasetStatus");
   const retry = $("ragflowRetry");
@@ -79,11 +79,11 @@
     win.hidden = true;
     win.innerHTML = '<div id="nexoConfigHeader" class="nexo-config-header"><span>Configurar grafo</span><button type="button" id="nexoConfigClose" aria-label="Cerrar">✕</button></div>' +
       '<div id="nexoConfigBody" class="nexo-config-body">' +
-      '<div class="cfg-group"><span class="nexo-field-label">Datasets</span><div id="nexoDatasetChips" class="nexo-dataset-chips" role="group" aria-label="Datasets del espacio"></div></div>' +
-      '<div class="cfg-group cfg-pair" role="group" aria-label="Conexiones del grafo"><label><input id="ragflowCenterEdges" type="checkbox" checked> Relación con dataset</label><label><input id="ragflowRelatedEdges" type="checkbox" checked> Relaciones entre nodos</label></div>' +
+      '<div class="cfg-group"><span class="nexo-field-label">Fuentes</span><div id="nexoDatasetChips" class="nexo-dataset-chips" role="group" aria-label="Fuentes del espacio"></div></div>' +
+      '<div class="cfg-group cfg-pair" role="group" aria-label="Conexiones del grafo"><label><input id="ragflowCenterEdges" type="checkbox" checked> Relación con fuente</label><label><input id="ragflowRelatedEdges" type="checkbox" checked> Relaciones entre nodos</label></div>' +
       '<div class="cfg-group"><label>Modo <select id="nexoGraphMode" aria-label="Modo del grafo"><option value="merged">Mezclado</option><option value="per-dataset">Separado</option></select></label><label class="cfg-grow">Buscar <input id="nexoEntitySearch" type="search" placeholder="Entidad…" aria-label="Buscar entidad"></label></div>' +
       '<div class="cfg-group"><span class="nexo-field-label">Tipos de nodo (clic para filtrar)</span><div id="nexoKindFilter" class="nexo-kind-filter"></div></div>' +
-      '<div class="cfg-group cfg-pair"><label><input id="nexoLabels" type="checkbox" checked> Etiquetas</label><label><input id="nexoPause" type="checkbox"> Pausa</label></div>' +
+      '<div class="cfg-group cfg-pair"><label><input id="nexoLabels" type="checkbox" checked> Etiquetas</label><label><input id="nexoPause" type="checkbox"> Pausa</label><label><input id="nexoCenterText" type="checkbox" checked> Texto central</label></div>' +
       '<div class="cfg-group"><span class="nexo-field-label">Zoom</span><div class="nexo-zoom"><button type="button" id="nexoZoomOut" aria-label="Alejar">−</button><button type="button" id="nexoZoomReset" aria-label="Restablecer vista">100%</button><button type="button" id="nexoZoomIn" aria-label="Acercar">+</button></div></div>' +
       '<details id="nexoAdvanced"><summary>Opciones avanzadas</summary>' +
       '<div class="cfg-advanced">' +
@@ -91,7 +91,7 @@
       '<label>Mín. conexiones <input id="nexoMinDegree" type="number" min="0" value="0"></label>' +
       '<label>Vista <select id="nexoLayout" aria-label="Vista"><option value="3d">3D</option><option value="2d">2D</option></select></label>' +
       '<label>Velocidad <input id="nexoRotation" type="range" min="0" max="3" step="0.5" value="1"></label>' +
-      '<label>Máx. datasets <input id="nexoMaxDatasets" type="number" min="1" max="6" value="3"></label>' +
+      '<label>Máx. fuentes <input id="nexoMaxDatasets" type="number" min="1" max="6" value="3"></label>' +
       '</div><div class="cfg-advanced-actions"><button type="button" id="nexoReset">Restablecer</button><button type="button" id="nexoApply">Actualizar</button></div></details>' +
       '</div>';
     container.appendChild(win);
@@ -103,7 +103,7 @@
     $("nexoApply")?.addEventListener("click", () => applyAdvanced());
     $("nexoReset")?.addEventListener("click", () => resetAdvanced());
 
-    const centerEdges = $("ragflowCenterEdges"), relatedEdges = $("ragflowRelatedEdges"), modeSel = $("nexoGraphMode"), searchEl = $("nexoEntitySearch"), labelsEl = $("nexoLabels"), pauseEl = $("nexoPause"), thrEl = $("nexoShareThreshold"), degEl = $("nexoMinDegree"), layoutEl = $("nexoLayout"), rotEl = $("nexoRotation"), maxEl = $("nexoMaxDatasets");
+    const centerEdges = $("ragflowCenterEdges"), relatedEdges = $("ragflowRelatedEdges"), modeSel = $("nexoGraphMode"), searchEl = $("nexoEntitySearch"), labelsEl = $("nexoLabels"), pauseEl = $("nexoPause"), centerTextEl = $("nexoCenterText"), thrEl = $("nexoShareThreshold"), degEl = $("nexoMinDegree"), layoutEl = $("nexoLayout"), rotEl = $("nexoRotation"), maxEl = $("nexoMaxDatasets");
     // Basic options apply live.
     centerEdges?.addEventListener("change", () => { state.showCenterConnections = centerEdges.checked; updateUrl(); });
     relatedEdges?.addEventListener("change", () => { state.showRelatedConnections = relatedEdges.checked; updateUrl(); });
@@ -111,6 +111,7 @@
     searchEl?.addEventListener("input", () => { state.searchQuery = searchEl.value || ""; updateUrl(); renderGraph(); });
     labelsEl?.addEventListener("change", () => { state.showLabels = labelsEl.checked; saveAdvanced(); });
     pauseEl?.addEventListener("change", () => { state.paused = pauseEl.checked; saveAdvanced(); });
+    centerTextEl?.addEventListener("change", () => { state.showCenterText = centerTextEl.checked; saveAdvanced(); applyCenterText(); });
     $("nexoZoomOut")?.addEventListener("click", () => { state.zoom = Math.max(0.4, Math.round((state.zoom - 0.2) * 10) / 10); renderZoom(); });
     $("nexoZoomIn")?.addEventListener("click", () => { state.zoom = Math.min(3, Math.round((state.zoom + 0.2) * 10) / 10); renderZoom(); });
     $("nexoZoomReset")?.addEventListener("click", () => { state.zoom = 1; state.panX = 0; state.panY = 0; renderZoom(); });
@@ -124,6 +125,7 @@
     makeDraggable(win, $("nexoConfigHeader"));
   }
   mountGraphConfig(brainPanel);
+  applyCenterText();
 
   const tooltip = document.createElement("div");
   tooltip.id = "nexoGraphTooltip";
@@ -141,7 +143,7 @@
   const idOf = item => String(item.id ?? item.entity_id ?? item.key ?? item.name ?? "");
   const labelOf = item => String(item.name ?? item.label ?? item.entity_name ?? item.title ?? idOf(item) ?? "Entidad");
   const detailOf = item => String(item.description ?? item.content ?? item.summary ?? item.entity_type ?? item.type ?? "Sin detalles adicionales.");
-  const KIND_LABELS = { dataset: "Datasets", document: "Documentos", keyword: "Palabras clave", metadata: "Metadatos", chunk: "Términos", concept: "Conceptos" };
+  const KIND_LABELS = { dataset: "Fuentes", document: "Documentos", keyword: "Palabras clave", metadata: "Metadatos", chunk: "Términos", concept: "Conceptos" };
   const KIND_COLORS = { dataset: "#e7a454", document: "#bed17a", keyword: "#60ba9f", metadata: "#5bc0eb", chunk: "#b394df", concept: "#e776b8" };
   const EDGE_COLORS = { membership: "#7c8f88", keyword: "#e7a454", metadata: "#5bc0eb", chunk: "#b394df", "shared-document": "#bed17a", relation: "#8fa39a" };
   const BRIDGE_COLOR = "#f1c40f";
@@ -159,7 +161,7 @@
     const response = await fetch(path, init);
     const payload = await response.json();
     if (!response.ok) {
-      if (response.status === 401) { resetKnowledge(); state.user = null; state.datasets = []; clearGraph("Sesión vencida. Iniciá sesión nuevamente."); }
+      if (response.status === 401) { resetKnowledge(); state.user = null; state.datasets = []; clearGraph("Sesión vencida. Iniciá sesión nuevamente."); window.nexoAuth?.goToLogin?.(location.href); }
       throw new Error(payload.error || `Error de conexión (${response.status}).`);
     }
     return payload;
@@ -184,14 +186,14 @@
   }
 
   // ---- Advanced option persistence ----
-  const ADV_DEFAULTS = { sharingThreshold: 2, minDegree: 0, paused: false, layout2d: false, rotationSpeed: 1, showLabels: true, maxDatasets: 3 };
+  const ADV_DEFAULTS = { sharingThreshold: 2, minDegree: 0, paused: false, layout2d: false, rotationSpeed: 1, showLabels: true, showCenterText: true, maxDatasets: 3 };
   function advKey(userId) { return `nexo:graph-adv:${userId}`; }
   function saveAdvanced() {
     if (!state.user) return;
     try {
       const store = globalThis.localStorage;
       if (!store) return;
-      store.setItem(advKey(state.user.id), JSON.stringify({ sharingThreshold: state.sharingThreshold, minDegree: state.minDegree, paused: state.paused, layout2d: state.layout2d, rotationSpeed: state.rotationSpeed, showLabels: state.showLabels, maxDatasets: state.maxDatasets }));
+      store.setItem(advKey(state.user.id), JSON.stringify({ sharingThreshold: state.sharingThreshold, minDegree: state.minDegree, paused: state.paused, layout2d: state.layout2d, rotationSpeed: state.rotationSpeed, showLabels: state.showLabels, showCenterText: state.showCenterText, maxDatasets: state.maxDatasets }));
     } catch { /* storage unavailable */ }
   }
   function loadAdvanced() {
@@ -218,6 +220,7 @@
     check("ragflowCenterEdges", state.showCenterConnections);
     check("ragflowRelatedEdges", state.showRelatedConnections);
     check("nexoLabels", state.showLabels);
+    check("nexoCenterText", state.showCenterText);
     check("nexoPause", state.paused);
     // Advanced options reflect the pending draft.
     set("nexoShareThreshold", String(draft.threshold));
@@ -227,6 +230,12 @@
     set("nexoMaxDatasets", String(draft.maxDatasets));
   }
   function renderZoom() { const el = $("nexoZoomReset"); if (el) el.textContent = `${Math.round(state.zoom * 100)}%`; }
+  // "Texto central" hides the NEXO / CEREBRO CONSTRUCTIVO overlay so the graph
+  // shows through cleanly.
+  function applyCenterText() {
+    const overlay = document.querySelector("#screen-dashboard .brain-overlay");
+    if (overlay) overlay.hidden = !state.showCenterText;
+  }
   function syncConfig() { seedDraft(); renderConfigControls(); }
 
   // ---- URL reflection (basic options) ----
@@ -266,7 +275,7 @@
   function selectDatasets(ids) {
     const unique = [...new Set(ids)].filter(id => state.datasets.some(d => d.id === id));
     if (unique.length > state.maxDatasets) {
-      if (status) status.textContent = `Máximo ${state.maxDatasets} datasets a la vez. Desmarcá uno antes de agregar otro.`;
+      if (status) status.textContent = `Máximo ${state.maxDatasets} fuentes a la vez. Desmarcá uno antes de agregar otro.`;
       renderDatasetChips();
       return false;
     }
@@ -318,7 +327,7 @@
       const assistants = workspace?.assistants || [];
       state.assistants = assistants;
       state.assistantId = assistants.some(a => a.id === requested.get("assistantId")) ? requested.get("assistantId") : (assistants[0]?.id || "");
-      state.datasets = (workspace?.datasets || []).map(d => ({ id: String(d.id ?? d.dataset_id ?? ""), name: String(d.name ?? d.dataset_name ?? "Dataset") })).filter(d => d.id);
+      state.datasets = (workspace?.datasets || []).map(d => ({ id: String(d.id ?? d.dataset_id ?? ""), name: String(d.name ?? d.dataset_name ?? "Fuente") })).filter(d => d.id);
       state.datasetsLoaded = true;
       if (!workspace) { state.datasetId = ""; state.datasetIds = []; updateUrl(); clearGraph("Seleccioná un espacio autorizado. Si no tenés ninguno, contactá a tu administrador."); return; }
       const fromUrl = requested.get("dataset");
@@ -327,7 +336,7 @@
       seedDraft();
       renderDatasetChips();
       updateUrl();
-      if (!state.datasets.length) { clearGraph("No hay datasets vinculados a este espacio."); return; }
+      if (!state.datasets.length) { clearGraph("No hay fuentes vinculadas a este espacio."); return; }
       loadGraphs();
     } catch { if (version === contextVersion) { clearGraph("Espacios no disponibles. Reintentá la conexión."); retry.hidden = false; } }
   }
@@ -373,9 +382,15 @@
     .nexo-dataset-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #34403b;border-radius:999px;padding:6px 11px;background:#101719;color:#cbd7cc;font-size:11px;cursor:pointer}
     .nexo-dataset-chip.active{border-color:#bed17a;background:#1b241b}
     .nexo-dataset-chip input{accent-color:#bed17a;margin:0}
-    #ragflowGraphCanvas{position:absolute;inset:0;z-index:0;touch-action:none;user-select:none}
+    #ragflowGraphCanvas{position:absolute;inset:0;z-index:1;touch-action:none;user-select:none}
     #brainDashboard[hidden]{display:none!important}
-    .brain-overlay{z-index:1}
+    /* The decorative centerpiece sits behind the graph so the source node
+       (the dataset hub at the panel center) is never hidden by its text. */
+    .brain-overlay{z-index:0;display:grid;justify-items:center;row-gap:4px;width:min(340px,82%);padding:0 10px}
+    .brain-overlay p{width:auto;max-width:320px;margin:14px 0 0;font-size:12px}
+    .brain-divider{display:block;width:72px;height:1px;margin:8px 0 2px;background:linear-gradient(90deg,transparent,#c6ae67aa,transparent)}
+    .brain-legend .legend-pill{display:inline-flex;align-items:baseline;gap:6px}
+    .brain-legend .legend-pill b{font-variant-numeric:tabular-nums}
     [hidden]{display:none!important}
     .nexo-graph-config{position:absolute;left:16px;top:70px;z-index:3;width:min(390px,54%);background:#0b1113f7;border:1px solid #2b3a33;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
     .nexo-config-header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #24312c;cursor:move;user-select:none}
@@ -428,7 +443,7 @@
         const sourceId = perDataset ? `ds:${dsIndex}::${rawId}` : rawId;
         let node = nodesBySource.get(sourceId);
         if (!node) {
-          node = { sourceId, label: labelOf(item), detail: detailOf(item), kind: String(item.kind ?? item.type ?? "concept"), documentCount: (item.documentCount != null && Number.isFinite(Number(item.documentCount))) ? Number(item.documentCount) : null, datasets: new Set(), bridge: false, ...stablePoint(sourceId) };
+          node = { sourceId, label: labelOf(item), detail: detailOf(item), kind: String(item.kind ?? item.type ?? "concept"), documentCount: item.documentCount == null || !Number.isFinite(Number(item.documentCount)) ? null : Number(item.documentCount), datasets: new Set(), bridge: false, ...stablePoint(sourceId) };
           nodesBySource.set(sourceId, node);
         }
         node.datasets.add(dsIndex);
@@ -550,7 +565,7 @@
       const noEntities = !model.nodes.length;
       state.documentCount = null;
       state.dashboardStatus = noEntities
-        ? (selectedDatasetIds().length === 1 ? "Este dataset todavía no tiene entidades indexadas." : "Estos datasets todavía no tienen entidades indexadas.")
+        ? (selectedDatasetIds().length === 1 ? "Esta fuente todavía no tiene entidades indexadas." : "Estas fuentes todavía no tienen entidades indexadas.")
         : "Sin nodos visibles con los filtros actuales. Reactivá algún tipo o ajustá el umbral.";
       if (status) status.textContent = state.dashboardStatus;
       dashboard.hidden = true; canvas.hidden = false;
@@ -564,8 +579,8 @@
     const docCount = model.nodes.filter(n => n.kind === "document").length;
     const termCount = model.nodes.filter(n => n.kind !== "document" && n.kind !== "dataset").length;
     state.documentCount = docCount || null;
-    state.dashboardStatus = `${dsCount} dataset${dsCount === 1 ? "" : "s"} · ${docCount} archivos · ${termCount} conceptos · ${state.edges.length} conexiones · Actualización desconocida`;
-    if (baseBrain) baseBrain.textContent = dsCount > 1 ? `Grafo mezclado de ${dsCount} datasets de RAGFlow` : "Grafo de conocimiento de RAGFlow";
+    state.dashboardStatus = `${dsCount} ${dsCount === 1 ? "fuente" : "fuentes"} · ${docCount} archivos · ${termCount} conceptos · ${state.edges.length} conexiones · Actualización desconocida`;
+    if (baseBrain) baseBrain.textContent = dsCount > 1 ? `Grafo mezclado de ${dsCount} fuentes` : "Grafo de conocimiento";
     if (status) status.textContent = state.dashboardStatus;
     renderKindFilter();
     renderDashboard();
@@ -580,13 +595,13 @@
   }
   function loadGraphs() {
     const ids = selectedDatasetIds();
-    if (!ids.length) { clearGraph("Seleccioná un dataset para explorar su grafo."); return; }
+    if (!ids.length) { clearGraph("Seleccioná una fuente para explorar su grafo."); return; }
     for (const id of ids) if (!graphCache.has(id)) void loadGraph(id);
     renderGraph();
   }
   async function loadGraph(datasetId) {
     const version = contextVersion;
-    if (!datasetId) { clearGraph("Seleccioná un dataset para explorar su grafo."); return; }
+    if (!datasetId) { clearGraph("Seleccioná una fuente para explorar su grafo."); return; }
     if (graphCache.has(datasetId)) { renderGraph(); return; }
     try {
       const payload = await getJson(`/api/datasets/${encodeURIComponent(datasetId)}/graph?workspaceId=${encodeURIComponent(state.workspaceId || "")}`);
@@ -599,7 +614,7 @@
         const sourceId = idOf(item) || String(index);
         if (seen.has(sourceId)) return null;
         seen.add(sourceId);
-        return { id: sourceId, name: labelOf(item), description: detailOf(item), kind: item.kind, documentCount: Number.isFinite(Number(item.documentCount)) ? Number(item.documentCount) : null };
+        return { id: sourceId, name: labelOf(item), description: detailOf(item), kind: item.kind, documentCount: item.documentCount == null || !Number.isFinite(Number(item.documentCount)) ? null : Number(item.documentCount) };
       }).filter(Boolean);
       const edges = (Array.isArray(graph?.edges ?? graph?.links ?? graph?.relations) ? graph?.edges ?? graph?.links ?? graph?.relations : []).map(edge => ({ source: String(edge.source ?? edge.from ?? edge.start ?? ""), target: String(edge.target ?? edge.to ?? edge.end ?? ""), label: String(edge.label ?? edge.kind ?? "Relación"), kind: String(edge.kind ?? "relation") }));
       graphCache.set(datasetId, { nodes, edges });
@@ -609,7 +624,7 @@
       graphCache.delete(datasetId);
       const others = selectedDatasetIds().filter(id => id !== datasetId);
       if (others.length && others.some(id => graphCache.has(id))) {
-        if (status) status.textContent = error instanceof Error ? `${error.message} · Un dataset falló.` : "No se pudo cargar un dataset.";
+        if (status) status.textContent = error instanceof Error ? `${error.message} · Una fuente falló.` : "No se pudo cargar una fuente.";
         renderGraph();
       } else {
         clearGraph(error instanceof Error ? `${error.message} · Podés volver a intentar.` : "No se pudo cargar el grafo.");
@@ -640,7 +655,7 @@
       const other = state.mergedNodes[e.from === node.index ? e.to : e.from];
       return `<li>${escapeHtml(e.label || "Conexión")}: ${escapeHtml(other?.label || "nodo relacionado")}</li>`;
     }).join("");
-    const dsName = node.datasetIndex >= 0 ? (state.datasets[node.datasetIndex]?.name || "Dataset") : "Varios datasets";
+    const dsName = node.datasetIndex >= 0 ? (state.datasets[node.datasetIndex]?.name || "Fuente") : "Varias fuentes";
     nodePanel.innerHTML = `<div class="nexo-node-panel-head"><b>${escapeHtml(node.label)}</b><button type="button" onclick="document.getElementById('nexoNodePanel').hidden=true">✕</button></div><p>${escapeHtml(node.detail)}</p>${connections ? `<br><b>Conexiones</b><ul>${connections}</ul>` : ""}<br><b>Identificador:</b> ${escapeHtml(node.sourceId)}<br><b>Fuente:</b> ${escapeHtml(dsName)}`;
   }
 
@@ -668,13 +683,17 @@
         const cx = width * .5 + state.panX, cy = height * .5 + state.panY;
         const angle = state.paused ? 0 : time * .000065 * (state.rotationSpeed || 0);
         const cos = Math.cos(angle), sin = Math.sin(angle);
+        // Small graphs need a legible layout: keep the dataset hub off the
+        // panel center (where the NEXO overlay and captions sit) and draw
+        // bigger nodes so a two-node file graph does not read as empty.
+        const sparse = state.nodes.length <= 10;
         const points = state.nodes.map((node, index) => {
           if (state.layout2d) {
             const p = layout2d.get(node.sourceId) || { x: node.x, y: node.y };
             const spread = Math.min(width, height) * .42 * state.zoom;
             return { ...node, index, sx: cx + p.x * spread, sy: cy + p.y * spread, depth: 0 };
           }
-          const r = node.kind === "dataset" ? 0.16 : 1;
+          const r = node.kind === "dataset" && !sparse ? 0.16 : 1;
           const x = (node.x * cos - node.z * sin) * r, z = (node.x * sin + node.z * cos) * r;
           const perspective = 1 + z * .17;
           return { ...node, index, sx: cx + x * scale * perspective, sy: cy + node.y * scale * .91 * r * perspective, depth: z };
@@ -696,7 +715,7 @@
           const focus = hovered === point.index;
           const dimmed = state.searchMatch.size && !state.searchMatch.has(point.index);
           const pulse = .5 + .5 * Math.sin(time * .002 + point.index * 1.4);
-          const radius = focus ? 5.5 : point.kind === "dataset" ? 7 : point.kind === "document" ? 2.4 + pulse * .7 : point.index % 11 === 0 ? 3.5 : 1.1 + pulse * .9;
+          const radius = focus ? 5.5 : point.kind === "dataset" ? (sparse ? 9 : 7) : point.kind === "document" ? (sparse ? 5 : 2.4 + pulse * .7) : sparse ? 5 : point.index % 11 === 0 ? 3.5 : 1.1 + pulse * .9;
           graphCtx.fillStyle = nodeColor(point);
           graphCtx.globalAlpha = dimmed ? .18 : Math.max(.35, (point.depth + 1) / 2);
           graphCtx.shadowColor = graphCtx.fillStyle; graphCtx.shadowBlur = focus ? 13 : point.bridge ? 9 : 5;
@@ -704,7 +723,7 @@
           graphCtx.shadowBlur = 0;
           if (point.bridge) { graphCtx.strokeStyle = BRIDGE_COLOR; graphCtx.lineWidth = 1.4; graphCtx.beginPath(); graphCtx.arc(point.sx, point.sy, radius + 2.5, 0, Math.PI * 2); graphCtx.stroke(); graphCtx.lineWidth = .8; }
           graphCtx.globalAlpha = 1;
-          if (state.showLabels && (focus || point.kind === "dataset" || point.kind === "document" || point.bridge)) {
+          if (state.showLabels && (focus || sparse || point.kind === "dataset" || point.kind === "document" || point.bridge)) {
             graphCtx.fillStyle = dimmed ? "#5f6c66" : "#cbd7cc";
             graphCtx.font = "9px 'DM Sans',sans-serif";
             graphCtx.fillText(String(point.label).slice(0, 24), point.sx + radius + 3, point.sy + 3);
@@ -759,13 +778,38 @@
   requestAnimationFrame(animateGraph);
 
   // ---- Dashboard KPIs + summary ----
+  // The activity log stores legacy English summaries that also named the engine;
+  // translate them here so the dashboard never shows raw English.
+  const ACTIVITY_LABELS = {
+    "workspace.created": "Se creó el espacio de trabajo",
+    "workspace.datasets.bound": "Fuente vinculada al espacio",
+    "workspace.datasets.unbound": "Se desvinculó la fuente del espacio",
+    "workspace.assistants.bound": "Asistente vinculado al espacio",
+    "workspace.assistants.unbound": "Se desvinculó el asistente del espacio",
+    "workspace.member.added": "Se agregó un miembro al espacio de trabajo",
+    "workspace.member.removed": "Se eliminó un miembro del espacio de trabajo",
+    "assistant.query.succeeded": "El asistente respondió una consulta",
+    "assistant.query.failed": "Falló una solicitud al asistente",
+    "knowledge.operation.completed": "Se completó una operación de documentos",
+    "knowledge.operation.failed": "Falló una operación de documentos",
+  };
+  function activitySummary(event) {
+    const type = String(event?.type || "");
+    const raw = String(event?.summary || "").replace(/\bRAGFlow\b\s*/gi, "").replace(/\s{2,}/g, " ").trim();
+    const name = raw.match(/:\s*(.+)$/)?.[1];
+    if (type === "workspace.created") return name ? `Se creó el espacio de trabajo: ${name}` : ACTIVITY_LABELS[type];
+    if (type === "workspace.datasets.bound") return name ? `Fuente vinculada: ${name}` : ACTIVITY_LABELS[type];
+    if (type === "workspace.assistants.bound") return name ? `Asistente vinculado: ${name}` : ACTIVITY_LABELS[type];
+    return ACTIVITY_LABELS[type] || raw || "Actividad";
+  }
   function renderDashboard() {
+    applyCenterText();
     const cards = document.querySelectorAll("#screen-dashboard .kpi");
     const workspaceName = state.workspaces?.find?.(w => w.id === state.workspaceId)?.name;
     const datasetName = primaryDatasetName();
     const values = [
-      ["DATASETS DISPONIBLES", state.datasetsLoaded ? state.datasets.length.toLocaleString("es-AR") : "—", state.user ? "[Cuenta] · Fuentes en RAGFlow" : "Iniciá sesión para consultar"],
-      ["DOCUMENTOS CONECTADOS", state.documentCount === null ? "—" : state.documentCount.toLocaleString("es-AR"), state.datasetId ? `[Dataset: ${datasetName || "Seleccionado"}]` : "Seleccioná un dataset"],
+      ["FUENTES DISPONIBLES", state.datasetsLoaded ? state.datasets.length.toLocaleString("es-AR") : "—", state.user ? "[Cuenta] · Fuentes conectadas" : "Iniciá sesión para consultar"],
+      ["DOCUMENTOS CONECTADOS", state.documentCount === null ? "—" : state.documentCount.toLocaleString("es-AR"), state.datasetId ? `[Fuente: ${datasetName || "Seleccionado"}]` : "Seleccioná una fuente"],
       ["ESPACIOS DE TRABAJO", state.workspaceCount === null ? "—" : state.workspaceCount.toLocaleString("es-AR"), "[Cuenta] · Espacios autorizados"],
       ["EVENTOS · 30 DÍAS", state.eventCount === null ? "—" : state.eventCount.toLocaleString("es-AR"), state.workspaceId ? `[Espacio: ${workspaceName || "Activo"}]` : "[Cuenta] · Registro operativo"],
     ];
@@ -779,7 +823,7 @@
     const legend = document.querySelector("#screen-dashboard .brain-legend");
     if (legend) {
       const items = [
-        ["Datasets", state.datasetsLoaded ? state.datasets.length : "—"],
+        ["Fuentes", state.datasetsLoaded ? state.datasets.length : "—"],
         ["Documentos", state.documentCount ?? "—"],
         ["Nodos", state.nodes.length || "—"],
         ["Conexiones", state.edges.length || "—"],
@@ -799,7 +843,7 @@
       else if (!state.recentEvents.length) activity.textContent = "Todavía no hay actividad registrada.";
       else state.recentEvents.slice(0, 4).forEach(event => {
         const row = document.createElement("div"); row.className = "activity-row";
-        const summary = document.createElement("span"); summary.textContent = event.summary || event.type || "Actividad";
+        const summary = document.createElement("span"); summary.textContent = activitySummary(event);
         const time = document.createElement("small"); time.textContent = event.createdAt || "";
         row.append(summary, time); row.tabIndex = 0; row.setAttribute("role", "link"); row.onclick = () => location.assign(workspaceUrl("activity", event.workspaceId)); row.onkeydown = e => { if (e.key === "Enter") row.click(); }; activity.append(row);
       });
@@ -810,13 +854,13 @@
       const failures = state.recentEvents.filter(event => /\.failed$/.test(event.type || "")).slice(0, 3);
       if (!state.user) attention.textContent = "Iniciá sesión para consultar el estado de tus fuentes.";
       else if (state.activityError) attention.textContent = state.activityError;
-      else if (!state.datasetId) attention.textContent = "Seleccioná un dataset para conectar el Centro de Inteligencia.";
+      else if (!state.datasetId) attention.textContent = "Seleccioná una fuente para conectar el Centro de Inteligencia.";
       else if (!failures.length) attention.textContent = "No hay operaciones fallidas en la actividad consultada.";
       else failures.forEach(event => {
         const row = document.createElement("button");
         row.className = "notice btn secondary";
         const isDoc = (event.type || "").toLowerCase().includes("document");
-        row.textContent = `${event.summary} · ${isDoc ? "Revisar en Documentos →" : "Ver detalle en Actividad →"}`;
+        row.textContent = `${activitySummary(event)} · ${isDoc ? "Revisar en Documentos →" : "Ver detalle en Actividad →"}`;
         row.onclick = () => window.nexoWorkspaceArea(isDoc ? "knowledge" : "activity");
         attention.append(row);
       });
@@ -841,37 +885,18 @@
     renderDashboard();
   }
 
-  function showSignIn(message = "") {
-    let dialog = $("nexoSignInDialog");
-    if (!dialog) {
-      dialog = document.createElement("dialog"); dialog.id = "nexoSignInDialog"; dialog.style.cssText = "max-width:430px;width:calc(100% - 32px);border:1px solid #394532;border-radius:12px;background:#171b17;color:#e8ece4;padding:24px";
-      const title = document.createElement("h2"); title.textContent = "Iniciar sesión";
-      const copy = document.createElement("p"); copy.textContent = "Ingresá con la cuenta que te asignó el administrador de NEXO."; copy.style.color = "#9ba493";
-      const form = document.createElement("form"); form.style.cssText = "display:grid;gap:12px";
-      const email = document.createElement("input"); email.type = "email"; email.name = "email"; email.required = true; email.autocomplete = "username"; email.placeholder = "Email";
-      email.setAttribute("aria-label", "Email");
-      const password = document.createElement("input"); password.type = "password"; password.name = "password"; password.required = true; password.autocomplete = "current-password"; password.placeholder = "Contraseña"; password.setAttribute("aria-label", "Contraseña");
-      for (const input of [email, password]) input.style.cssText = "height:40px;padding:0 10px;border-radius:6px;border:1px solid #394532;background:#101310;color:#e8ece4";
-      const error = document.createElement("p"); error.setAttribute("role", "alert"); error.style.color = "#efaa91";
-      const actions = document.createElement("div"); actions.style.cssText = "display:flex;justify-content:flex-end;gap:8px";
-      const cancel = document.createElement("button"); cancel.type = "button"; cancel.textContent = "Cancelar"; cancel.addEventListener("click", () => dialog.close());
-      const submit = document.createElement("button"); submit.type = "submit"; submit.textContent = "Entrar";
-      for (const item of [cancel, submit]) item.style.cssText = "padding:9px 13px;border:0;border-radius:6px;background:#b6d584;color:#182016;cursor:pointer";
-      actions.append(cancel, submit); form.append(email, password, error, actions); dialog.append(title, copy, form); document.body.append(dialog);
-      form.addEventListener("submit", async event => {
-        event.preventDefault(); submit.disabled = true; error.textContent = "";
-        try { const result = await getJson("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email.value, password: password.value }) }); state.user = result.user; dialog.close(); window.dispatchEvent(new Event('nexo-session-changed')); }
-        catch (err) { error.textContent = err instanceof Error ? err.message : "No se pudo iniciar sesión."; }
-        finally { submit.disabled = false; }
-      });
-    }
-    const error = dialog.querySelector('[role="alert"]'); if (error) error.textContent = message;
-    dialog.showModal();
+  function showSignIn() {
+    // El ingreso se resuelve en la pantalla dedicada (/login.html): el shell ya no
+    // abre un diálogo porque la aplicación queda oculta sin una sesión válida.
+    window.nexoAuth?.goToLogin?.(location.href);
   }
   async function signOut() {
     try { await getJson("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); }
     catch { toast("No se pudo cerrar la sesión. Reintentá."); return; }
-    resetKnowledge(); state.user = null; state.tools = []; state.datasets = []; state.workspaceCount = null; state.eventCount = null; state.recentEvents = []; mountIdentity(); mountToolControls();
+    resetKnowledge(); state.user = null; state.tools = []; state.datasets = []; state.workspaceCount = null; state.eventCount = null; state.recentEvents = [];
+    // Sin sesión el shell no debe seguir visible: se vuelve a la pantalla de ingreso.
+    if (window.nexoAuth) { window.nexoAuth.goToLogin(location.href); return; }
+    mountIdentity(); mountToolControls();
   }
   async function loadApprovedTools() {
     try { const result = await getJson("/api/mcp/tools"); state.tools = Array.isArray(result.tools) ? result.tools : []; state.mcpUnavailableReason = result.reason || ""; state.configuredToolCount = Number(result.configuredToolCount) || 0; }
@@ -883,9 +908,9 @@
     let panel = $("nexoMcpTools"); if (!panel) { panel = document.createElement("section"); panel.id = "nexoMcpTools"; panel.style.cssText = "grid-column:1/-1;padding:13px;border:1px solid #34403b;border-radius:8px;background:#171b17"; layout.prepend(panel); }
     panel.replaceChildren();
     const title = document.createElement("b"); title.textContent = "Herramientas MCP · Por incorporar";
-    const help = document.createElement("p"); help.textContent = "La ejecución de herramientas todavía no está disponible. Las consultas usan únicamente el asistente y dataset seleccionados."; help.style.cssText = "color:#98a292;font-size:11px";
+    const help = document.createElement("p"); help.textContent = "La ejecución de herramientas todavía no está disponible. Las consultas usan únicamente el asistente y la fuente seleccionada."; help.style.cssText = "color:#98a292;font-size:11px";
     panel.append(title, help);
-    const context = document.createElement("p"); context.textContent = state.datasetId ? `Dataset: ${primaryDatasetName()}` : "Sin dataset seleccionado";
+    const context = document.createElement("p"); context.textContent = state.datasetId ? `Fuente: ${primaryDatasetName()}` : "Sin fuente seleccionada";
     const change = document.createElement("button"); change.type = "button"; change.textContent = "Seleccionar fuente en el Centro"; change.onclick = () => go("dashboard"); panel.append(context, change);
   }
   async function mountIdentity() {
@@ -899,7 +924,7 @@
     if (avatar) avatar.textContent = state.user ? state.user.displayName.slice(0, 2).toUpperCase() : "—";
     if (role) role.textContent = state.user ? state.user.displayName : "Sin sesión";
     if (state.user) { loadAdvanced(); syncConfig(); await loadApprovedTools(); if (version !== contextVersion) return; await loadContext(); await loadDashboardData(); }
-    else { clearGraph("Iniciá sesión con tu cuenta NEXO para cargar datasets."); renderDashboard(); }
+    else { clearGraph("Iniciá sesión con tu cuenta NEXO para cargar fuentes."); renderDashboard(); }
   }
   function updateUrl({ push = false } = {}) {
     const next = new URL(location.href);
@@ -935,8 +960,8 @@
     }
     if (contextStrip) {
       const wName = state.workspaces?.find(w => w.id === state.workspaceId)?.name || "General";
-      const dNames = state.datasetIds.length ? state.datasetIds.map(id => state.datasets.find(d => d.id === id)?.name || id).join(", ") : "Sin dataset";
-      contextStrip.innerHTML = `<span><b>Espacio:</b> ${escapeHtml(wName)} · <b>Datasets:</b> ${escapeHtml(dNames)}</span><button type="button" class="btn ghost small" style="font-size: 10px; padding: 2px 8px" onclick="go('dashboard')">Cambiar ↗</button>`;
+      const dNames = state.datasetIds.length ? state.datasetIds.map(id => state.datasets.find(d => d.id === id)?.name || id).join(", ") : "Sin fuente";
+      contextStrip.innerHTML = `<span><b>Espacio:</b> ${escapeHtml(wName)} · <b>Fuentes:</b> ${escapeHtml(dNames)}</span><button type="button" class="btn ghost small" style="font-size: 10px; padding: 2px 8px" onclick="go('dashboard')">Cambiar ↗</button>`;
     }
     feed.replaceChildren();
     if (!chatLog.length) chatLog.push({ role: "ai", text: initialMessage.text });
@@ -964,7 +989,7 @@
   window.sendChat = async function () {
     const input = $("chatInput"), question = input?.value?.trim();
     if (!question || state.chatBusy) return;
-    if (!state.user || !state.datasets.some(row => row.id === state.datasetId)) { toast("Iniciá sesión y seleccioná un dataset autorizado en el Centro de Inteligencia."); return; }
+    if (!state.user || !state.datasets.some(row => row.id === state.datasetId)) { toast("Iniciá sesión y seleccioná una fuente autorizada en el Centro de Inteligencia."); return; }
     if (state.workspaceId && !state.assistantId) { toast("Este espacio no tiene un asistente de RAGFlow vinculado. Contactá a tu administrador."); return; }
     const datasetId = state.datasetId;
     const version = contextVersion;
@@ -994,7 +1019,7 @@
   window.nexoRefreshContext = async () => { restoreRoute(); await mountIdentity(); };
   window.nexoSuspendContext = () => { contextVersion++; };
   window.addEventListener("nexo-workspaces-changed", () => { if (state.user) void loadContext(); });
-  const period = document.querySelector('#screen-dashboard .panel-title .tag'); if (period) period.textContent = 'Fuentes NEXO / RAGFlow';
+  const period = document.querySelector('#screen-dashboard .panel-title .tag'); if (period) period.textContent = 'Fuentes NEXO';
   window.addEventListener("popstate", () => { restoreRoute(); });
   restoreRoute();
 })();
