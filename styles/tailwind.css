@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@source "../app";
+@source "../public";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  --color-nexo-bg: #070b0e;
+  --color-nexo-panel: #101619;
+  --color-nexo-line: #26312f;
+  --color-nexo-text: #e9eeeb;
+  --color-nexo-muted: #82928f;
+  --color-nexo-lime: #bed17a;
+  --color-nexo-lime-dark: #a7c56e;
+  --color-nexo-orange: #e7a454;
+  --color-nexo-danger: #e38575;
+}

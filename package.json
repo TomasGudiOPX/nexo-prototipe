@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "react-router dev --port 3000",
+    "predev": "npm run css:build",
+    "dev": "concurrently -k \"npm:css:watch\" \"react-router dev --port 3000\"",
+    "css:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/tailwind.css --watch",
+    "css:build": "tailwindcss -i ./styles/tailwind.css -o ./public/tailwind.css --minify",
     "configure": "node tools/configure.mjs",
     "configure:compose": "node tools/configure-compose.mjs",
-    "build": "react-router build",
+    "build": "npm run css:build && react-router build",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "node --loader ./tools/ts-extension-loader.mjs --test app/server/*.test.ts test/*.test.mjs"
@@ -21,9 +24,12 @@
   },
   "devDependencies": {
     "@react-router/dev": "8.4.0",
+    "@tailwindcss/cli": "^4.3.3",
     "@types/node": "24.3.0",
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.7",
+    "concurrently": "^10.0.6",
+    "tailwindcss": "^4.3.3",
     "typescript": "5.9.2",
     "vite": "7.1.3"
   }

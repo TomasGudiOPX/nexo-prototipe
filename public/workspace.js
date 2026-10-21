@@ -58,7 +58,7 @@ function frame(area, body) {
     app.querySelectorAll('button:not(.resource-unbind)').forEach(button => {
       // Section tabs keep their own underline styling; every other button adopts the
       // shell's .btn vocabulary so workspace markup matches the surrounding app.
-      if (button.closest('[role="tablist"]')) return;
+      if (button.closest('[role="tablist"]') || button.closest('[data-tailwind]')) return;
       button.classList.add('btn');
       if (!button.closest('form') || button.classList.contains('secondary')) button.classList.add('secondary');
     });
@@ -95,109 +95,116 @@ async function workspacesPage() {
     const isActive = w.id === state.workspaceId;
     const canManage = canMutate() && (state.user.role === "site-admin" || w.role === "owner");
     const unbindButton = (kind, item) => canManage
-      ? `<button type="button" class="resource-unbind" style="background:transparent;border:0;color:#e08a8a;cursor:pointer;font-size:11px;line-height:1;padding:0 2px;margin-left:5px" data-unbind-${kind}="${esc(item.id)}" data-workspace="${esc(w.id)}" title="Desvincular" aria-label="Desvincular ${esc(item.name)}">✕</button>`
+      ? `<button type="button" class="resource-unbind ml-1 rounded px-1 text-[11px] leading-none text-rose-300 hover:bg-rose-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300" data-unbind-${kind}="${esc(item.id)}" data-workspace="${esc(w.id)}" title="Desvincular" aria-label="Desvincular ${esc(item.name)}">✕</button>`
       : "";
     const datasetPills = w.datasets.length
-      ? w.datasets.map(x => `<span class="resource-tag">▤ ${esc(x.name)}${unbindButton("dataset", x)}</span>`).join("")
-      : `<span class="muted" style="font-size: 11px">Sin fuentes vinculadas</span>`;
+      ? w.datasets.map(x => `<span class="inline-flex max-w-full items-center gap-1 rounded-md border border-[#2b3d34] bg-[#192420] px-2 py-1 text-[11px] text-[#d2decb]">▤ ${esc(x.name)}${unbindButton("dataset", x)}</span>`).join("")
+      : `<span class="text-[11px] text-[#9aa79e]">Sin fuentes vinculadas</span>`;
     const assistantPills = w.assistants.length
-      ? w.assistants.map(x => `<span class="resource-tag" style="border-color:#3a3250; background:#1c1726; color:#caa5f7;">◈ ${esc(x.name)}${unbindButton("assistant", x)}</span>`).join("")
-      : `<span class="muted" style="font-size: 11px">Sin asistentes vinculados</span>`;
+      ? w.assistants.map(x => `<span class="inline-flex max-w-full items-center gap-1 rounded-md border border-[#463560] bg-[#241d31] px-2 py-1 text-[11px] text-[#caa5f7]">◈ ${esc(x.name)}${unbindButton("assistant", x)}</span>`).join("")
+      : `<span class="text-[11px] text-[#9aa79e]">Sin asistentes vinculados</span>`;
 
     return `
-      <article class="panel project-card" style="display: flex; flex-direction: column; justify-content: space-between; border-color: ${isActive ? "#759a53" : "var(--line)"};">
-        <div class="project-content" style="padding: 18px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+      <article class="group flex min-w-0 flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br from-[#151d1b] to-[#101614] text-[#e9eeeb] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#52634b] hover:shadow-xl hover:shadow-black/20 ${isActive ? "border-[#759a53] shadow-[inset_0_0_0_1px_#759a5340]" : "border-[#2b3832]"}" data-tailwind data-workspace-card data-search="${esc([w.name, w.description, ...w.datasets.map(x => x.name), ...w.assistants.map(x => x.name)].join(" "))}">
+        <div class="grid gap-4 p-4 sm:p-[18px]">
+          <div class="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h2 style="font-size: 18px; margin: 0 0 5px; font-family: Manrope, sans-serif; font-weight: 700;">${esc(w.name)}</h2>
-              <p class="muted" style="margin: 0; font-size: 12px;">${esc(w.description || "Espacio de trabajo operativo")}</p>
+              <h2 class="mb-1.5 break-words font-display text-lg font-bold leading-snug">${esc(w.name)}</h2>
+              <p class="text-xs leading-5 text-[#9aa79e]">${esc(w.description || "Espacio de trabajo operativo")}</p>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-              ${isActive ? '<span class="badge active">● Espacio activo</span>' : `<button type="button" class="btn secondary small" data-select-workspace="${esc(w.id)}">Activar</button>`}
-              <span class="badge gray">${esc(w.role)}</span>
+            <div class="flex shrink-0 flex-col items-end gap-1.5">
+              ${isActive ? '<span class="inline-flex items-center gap-1 rounded-full border border-[#4e6d3e] bg-[#243621] px-2.5 py-1 text-[11px] font-semibold text-[#bed17a]">● Espacio activo</span>' : `<button type="button" class="rounded-md border border-[#3b4b41] bg-[#17211d] px-3 py-1.5 text-xs font-semibold text-[#e9eeeb] transition hover:border-[#bed17a] hover:text-[#bed17a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bed17a]" data-select-workspace="${esc(w.id)}">Activar</button>`}
+              <span class="inline-flex rounded-full border border-[#2a3834] bg-[#18201e] px-2.5 py-1 text-[11px] font-semibold text-[#95a5a0]">${esc(w.role)}</span>
             </div>
           </div>
 
-          <div class="workspace-metrics">
-            <span class="workspace-metric-chip" title="Fuentes vinculadas">▤ <b>${w.datasets.length}</b> fuentes</span>
-            <span class="workspace-metric-chip" title="Asistentes vinculados">◈ <b>${w.assistants.length}</b> asistentes</span>
-            <span class="workspace-metric-chip" title="Miembros con acceso">👥 <b>${w.memberCount}</b> miembros</span>
+          <div class="my-2.5 flex flex-wrap gap-3 border-y border-[#1c2725] py-2.5 text-xs">
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-[#25332e] bg-[#101716] px-2.5 py-1.5 text-[#b5c4b8]" title="Fuentes vinculadas">▤ <b>${w.datasets.length}</b> fuentes</span>
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-[#25332e] bg-[#101716] px-2.5 py-1.5 text-[#b5c4b8]" title="Asistentes vinculados">◈ <b>${w.assistants.length}</b> asistentes</span>
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-[#25332e] bg-[#101716] px-2.5 py-1.5 text-[#b5c4b8]" title="Miembros con acceso">👥 <b>${w.memberCount}</b> miembros</span>
           </div>
 
-          <div style="margin: 12px 0;">
-            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; font-weight: 600;">Fuentes y Asistentes</div>
-            <div style="margin-bottom: 8px;">${datasetPills}</div>
-            <div style="margin-bottom: 8px;">${assistantPills}</div>
+          <div class="my-3 grid gap-2">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-[#9aa79e]">Fuentes y asistentes</div>
+            <div class="flex flex-wrap gap-1.5">${datasetPills}</div>
+            <div class="flex flex-wrap gap-1.5">${assistantPills}</div>
           </div>
 
           ${canManage ? `
-            <details style="margin-top: 10px; background: #0c1214; border: 1px solid #1c2725; border-radius: 8px; padding: 8px 12px;">
-              <summary style="font-size: 11px; font-weight: 600; color: var(--lime); cursor: pointer;">⚙ Vincular nuevos recursos ▾</summary>
-              <div style="margin-top: 10px;">
-                <div class="toolbar" style="margin-bottom: 10px;">
-                  <button type="button" class="btn secondary small" data-create-dataset="${esc(w.id)}">+ Crear fuente en RAGFlow</button>
+            <details class="mt-2 rounded-lg border border-[#1c2725] bg-[#0c1214] px-3">
+              <summary class="cursor-pointer py-2 text-xs font-semibold text-[#bed17a]">⚙ Vincular nuevos recursos ▾</summary>
+              <div class="grid gap-3 py-2">
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="rounded-md border border-[#3b4b41] bg-[#17211d] px-3 py-2 text-xs font-semibold text-[#e9eeeb] transition hover:border-[#bed17a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bed17a]" data-create-dataset="${esc(w.id)}">+ Crear fuente en RAGFlow</button>
                 </div>
-                <div style="display: grid; gap: 8px;">
-                  <label style="font-size: 11px;">Vincular fuente existente
-                    <select data-bind="datasets" data-workspace="${esc(w.id)}">
+                <div class="grid gap-2">
+                  <label class="grid gap-1.5 text-xs text-[#c2cbc1]">Vincular fuente existente
+                    <select class="w-full rounded-md border border-[#2b3832] bg-[#101716] px-3 py-2.5 text-sm text-[#e9eeeb] focus:border-[#bed17a] focus:outline-none focus:ring-2 focus:ring-[#bed17a]/20" data-bind="datasets" data-workspace="${esc(w.id)}">
                       <option value="">Cargando catálogo…</option>
                     </select>
                   </label>
-                  <label style="font-size: 11px;">Vincular asistente
-                    <select data-bind="assistants" data-workspace="${esc(w.id)}">
+                  <label class="grid gap-1.5 text-xs text-[#c2cbc1]">Vincular asistente
+                    <select class="w-full rounded-md border border-[#2b3832] bg-[#101716] px-3 py-2.5 text-sm text-[#e9eeeb] focus:border-[#bed17a] focus:outline-none focus:ring-2 focus:ring-[#bed17a]/20" data-bind="assistants" data-workspace="${esc(w.id)}">
                       <option value="">Cargando catálogo…</option>
                     </select>
                   </label>
-                  <div class="toolbar" style="margin-top: 2px;">
-                    <button type="button" class="btn secondary small" data-refresh="${esc(w.id)}">↻ Actualizar catálogo</button>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="rounded-md border border-[#3b4b41] bg-[#17211d] px-3 py-2 text-xs font-semibold text-[#e9eeeb] transition hover:border-[#bed17a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bed17a]" data-refresh="${esc(w.id)}">↻ Actualizar catálogo</button>
                   </div>
                 </div>
               </div>
             </details>
           ` : ""}
 
-          <details data-lazy-members="${esc(w.id)}" style="margin-top: 14px; border-top: 1px solid #202b28; padding-top: 10px;">
-            <summary style="font-size: 12px; font-weight: 600; color: #d4e8cb; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+          <details data-lazy-members="${esc(w.id)}" class="mt-3 border-t border-[#202b28] pt-2">
+            <summary class="flex cursor-pointer items-center justify-between gap-3 py-2 text-xs font-semibold text-[#d4e8cb]">
               <span>👥 Miembros autorizados (${w.memberCount})</span>
               <span style="font-size: 10px; color: var(--muted)">Gestionar ▾</span>
             </summary>
-            <div style="margin-top: 10px;">
+            <div class="mt-2 grid gap-3">
               ${canMutate() && (state.user.role === "site-admin" || w.role === "owner") ? `
-                <form class="toolbar" data-add-member="${esc(w.id)}" style="margin-bottom: 12px;">
-                  <label style="flex: 1; min-width: 140px; font-size: 11px;">Agregar miembro por email
-                    <input type="email" name="email" placeholder="usuario@empresa.com" required style="padding: 7px 10px; font-size: 12px;">
+                <form class="flex flex-wrap items-end gap-2" data-add-member="${esc(w.id)}">
+                  <label class="grid min-w-[140px] flex-1 gap-1.5 text-xs text-[#c2cbc1]">Agregar miembro por email
+                    <input class="w-full rounded-md border border-[#2b3832] bg-[#101716] px-3 py-2 text-sm text-[#e9eeeb] placeholder:text-[#82928f] focus:border-[#bed17a] focus:outline-none focus:ring-2 focus:ring-[#bed17a]/20" type="email" name="email" placeholder="usuario@empresa.com" required>
                   </label>
-                  <button type="submit" class="btn secondary small" style="margin-top: auto;">Agregar</button>
+                  <button type="submit" class="rounded-md border border-[#3b4b41] bg-[#17211d] px-3 py-2 text-xs font-semibold text-[#e9eeeb] transition hover:border-[#bed17a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bed17a]">Agregar</button>
                 </form>
               ` : ""}
-              <div data-members-list="${esc(w.id)}" class="muted" style="padding: 6px 0; font-size: 12px;">
+              <div data-members-list="${esc(w.id)}" class="py-1.5 text-xs text-[#9aa79e]">
                 Cargando miembros…
               </div>
             </div>
           </details>
         </div>
 
-        <div style="padding: 12px 18px; background: #0c1214; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 12px 12px;">
-          <span class="muted" style="font-size: 11px;">ID: ${esc(w.id)}</span>
-          <button type="button" class="btn secondary small" data-goto-docs="${esc(w.id)}">Abrir Documentos →</button>
-        </div>
+        <footer class="flex justify-end border-t border-[#2b3832] bg-[#0c1214] px-4 py-3">
+          <button type="button" class="inline-flex items-center gap-2 rounded-md border border-[#3b4b41] bg-[#17211d] px-3 py-2 text-xs font-semibold text-[#e9eeeb] transition hover:border-[#bed17a] hover:text-[#bed17a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bed17a]" data-goto-docs="${esc(w.id)}">Ver documentos <span aria-hidden="true">→</span></button>
+        </footer>
       </article>
     `;
   }).join("") : empty("Todavía no hay espacios creados. Creá uno para organizar fuentes y asistentes.");
 
   return `
-    <div class="heading">
+    <header data-tailwind class="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="eyebrow">Espacio NEXO</p>
-        <h1>Espacios de trabajo</h1>
-        <p class="muted">Organizá personas, fuentes y asistentes autorizados.</p>
+        <p class="mb-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#bed17a]">Espacio NEXO</p>
+        <h1 class="mb-1 font-display text-[27px] font-semibold leading-tight text-[#e9eeeb]">Espacios de trabajo</h1>
+        <p class="max-w-2xl text-sm leading-6 text-[#9aa79e]">Organizá personas, fuentes y asistentes autorizados.</p>
       </div>
-      <div>
-        ${canMutate() ? `<button type="button" class="btn" id="openCreateWorkspaceBtn">+ Nuevo espacio</button>` : ""}
-      </div>
-    </div>
+      ${canMutate() ? `<button type="button" id="openCreateWorkspaceBtn" class="inline-flex items-center gap-2 rounded-lg border border-[#9ebd75] bg-[#bed17a] px-4 py-2.5 text-sm font-bold text-[#111812] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#cde08f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bed17a]">+ Nuevo espacio</button>` : ""}
+    </header>
 
-    <div class="section-grid">${cards}</div>
+    ${state.workspaces.length ? `
+      <div data-tailwind class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="m-0 text-xs text-[#9aa79e]" id="workspaceCount" role="status"><strong class="text-sm text-[#e9eeeb]">${state.workspaces.length}</strong> ${state.workspaces.length === 1 ? "espacio" : "espacios"}</p>
+        <label class="grid w-full gap-1.5 sm:max-w-[340px]">
+          <span class="sr-only">Buscar espacios de trabajo</span>
+          <input class="w-full rounded-md border border-[#2b3832] bg-[#101716] px-3 py-2.5 text-sm text-[#e9eeeb] placeholder:text-[#82928f] focus:border-[#bed17a] focus:outline-none focus:ring-2 focus:ring-[#bed17a]/20" type="search" id="workspaceSearch" placeholder="Buscar por nombre, fuente o asistente…" autocomplete="off">
+        </label>
+      </div>
+      <div data-tailwind class="grid grid-cols-[repeat(auto-fill,minmax(min(330px,100%),1fr))] items-stretch gap-4">${cards}</div>
+      <div data-tailwind class="rounded-lg border border-dashed border-[#46534a] px-6 py-7 text-center text-sm leading-6 text-[#9aa79e]" id="workspaceNoResults" role="status" hidden>No encontramos espacios que coincidan con esa búsqueda.</div>
+    ` : `<div data-tailwind class="rounded-lg border border-dashed border-[#46534a] px-6 py-9 text-center"><strong class="block text-base font-semibold text-[#e9eeeb]">Todavía no hay espacios de trabajo</strong><p class="mb-0 mt-2 text-sm leading-6 text-[#9aa79e]">Creá uno para reunir personas, fuentes y asistentes en un mismo lugar.</p></div>`}
   `;
 }
 
@@ -814,6 +821,21 @@ function bindPageActions() {
   bindDocumentTable(app, { api, post, esc });
   bindConnectionSettings(app, post, render, esc);
 
+  app.querySelector("#workspaceSearch")?.addEventListener("input", event => {
+    const query = event.currentTarget.value.trim().toLocaleLowerCase();
+    const cards = [...app.querySelectorAll("[data-workspace-card]")];
+    let visible = 0;
+    cards.forEach(card => {
+      const matches = card.dataset.search.toLocaleLowerCase().includes(query);
+      card.hidden = !matches;
+      if (matches) visible++;
+    });
+    const count = app.querySelector("#workspaceCount");
+    if (count) count.innerHTML = `<strong class="text-sm text-[#e9eeeb]">${visible}</strong> de ${cards.length} ${cards.length === 1 ? "espacio" : "espacios"}`;
+    const noResults = app.querySelector("#workspaceNoResults");
+    if (noResults) noResults.hidden = visible > 0;
+  });
+
   app.querySelectorAll("[data-config-nav]").forEach(button => {
     button.addEventListener("click", () => {
       const url = new URL(location.href);
@@ -953,16 +975,16 @@ function bindPageActions() {
         const canManageMembers = canMutate() && (state.user.role === "site-admin" || state.workspaces.find(row => row.id === workspaceId)?.role === "owner");
         container.innerHTML = result.members?.length
           ? result.members.map(m => `
-              <div class="member-list-item">
-                <div style="display: flex; align-items: center; gap: 9px;">
-                  <div class="member-avatar">${esc((m.displayName || m.email || "U").slice(0, 2).toUpperCase())}</div>
+              <div class="flex items-center justify-between gap-2.5 border-b border-[#1f2a27] py-2">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <div class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#25372b] text-[11px] font-bold text-[#bed17a]">${esc((m.displayName || m.email || "U").slice(0, 2).toUpperCase())}</div>
                   <div>
-                    <div style="font-weight: 600; color: #e9eeeb;">${esc(m.displayName || m.email)}</div>
-                    <div class="muted" style="font-size: 11px;">${esc(m.email)} · <span class="badge gray" style="padding: 1px 6px; font-size: 10px;">${esc(m.role)}</span></div>
+                    <div class="font-semibold text-[#e9eeeb]">${esc(m.displayName || m.email)}</div>
+                    <div class="text-[11px] text-[#9aa79e]">${esc(m.email)} · <span class="inline-flex rounded-full border border-[#2a3834] bg-[#18201e] px-1.5 py-0.5 text-[10px] font-semibold text-[#95a5a0]">${esc(m.role)}</span></div>
                   </div>
                 </div>
                 ${canManageMembers && m.role !== "owner"
-                  ? `<button class="danger" style="padding: 3px 8px; font-size: 11px" data-remove-member="${esc(workspaceId)}" data-user="${esc(m.id)}">Quitar</button>`
+                  ? `<button class="rounded-md border border-[#79413b] bg-[#3b211f] px-2 py-1 text-[11px] font-semibold text-[#ffd8d2] hover:bg-[#4b2926] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f09185]" data-remove-member="${esc(workspaceId)}" data-user="${esc(m.id)}">Quitar</button>`
                   : ""}
               </div>
             `).join("")

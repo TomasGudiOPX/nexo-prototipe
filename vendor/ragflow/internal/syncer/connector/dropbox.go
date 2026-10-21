@@ -504,10 +504,10 @@ func (f dropboxFileMetadata) downloadPath() string {
 }
 
 func (f dropboxFileMetadata) updatedAt() time.Time {
-	if parsed := parseDropboxTime(f.ClientModified); !parsed.IsZero() {
+	if parsed := parseDropboxTime(f.ServerModified); !parsed.IsZero() {
 		return parsed
 	}
-	if parsed := parseDropboxTime(f.ServerModified); !parsed.IsZero() {
+	if parsed := parseDropboxTime(f.ClientModified); !parsed.IsZero() {
 		return parsed
 	}
 	return time.Unix(0, 0).UTC()

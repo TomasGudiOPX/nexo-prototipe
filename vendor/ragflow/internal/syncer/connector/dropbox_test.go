@@ -153,6 +153,21 @@ func TestDropboxConnectorValidate(t *testing.T) {
 	}
 }
 
+func TestDropboxUpdatedAtUsesServerModification(t *testing.T) {
+	file := dropboxFileMetadata{
+		ClientModified: "2026-10-21T18:17:08Z",
+		ServerModified: "2026-10-21T19:19:35Z",
+	}
+	if got := file.updatedAt(); !got.Equal(time.Date(2026, 10, 21, 19, 19, 35, 0, time.UTC)) {
+		t.Fatalf("updatedAt = %v, want server modification", got)
+	}
+
+	file.ServerModified = ""
+	if got := file.updatedAt(); !got.Equal(time.Date(2026, 10, 21, 18, 17, 8, 0, time.UTC)) {
+		t.Fatalf("updatedAt without server modification = %v, want client modification", got)
+	}
+}
+
 func TestDropboxConnectorOpenSync(t *testing.T) {
 	fixture := newDropboxTestServer(t)
 	connector := newDropboxTestConnector(t, fixture, false)
